@@ -1,0 +1,84 @@
+import { useThree } from '@react-three/fiber';
+import { useEffect, useMemo } from 'react';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMaterial } from 'three';
+import { starsFragmentShader, starsVertexShader } from './shaders';
+
+const STAR_COUNT = 1600;
+/** Stars fill a cone behind the globe; the camera never turns, so nothing is wasted. */
+const CONE_HALF_ANGLE = (52 * Math.PI) / 180;
+const STAR_PALETTE = ['#f3f8fc', '#f3f8fc', '#cfeaff', '#a9cfff', '#ffeccf'].map((hex) => new Color(hex));
+
+/** Deterministic generator so the sky looks the same on every visit. */
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildStars(): BufferGeometry {
+  const random = mulberry32(20261016);
+  const positions = new Float32Array(STAR_COUNT * 3);
+  const colors = new Float32Array(STAR_COUNT * 3);
+  const sizes = new Float32Array(STAR_COUNT);
+  const brightness = new Float32Array(STAR_COUNT);
+  const cosMax = Math.cos(CONE_HALF_ANGLE);
+
+  for (let i = 0; i < STAR_COUNT; i++) {
+    // Uniform direction inside a cone around -Z.
+    const cosTheta = 1 - random() * (1 - cosMax);
+    const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
+    const phi = random() * Math.PI * 2;
+    const distance = 70 + random() * 50;
+    positions[i * 3] = Math.cos(phi) * sinTheta * distance;
+    positions[i * 3 + 1] = Math.sin(phi) * sinTheta * distance;
+    positions[i * 3 + 2] = 5 - cosTheta * distance;
+
+    const color = STAR_PALETTE[Math.floor(random() * STAR_PALETTE.length)];
+    colors.set([color.r, color.g, color.b], i * 3);
+    sizes[i] = 0.9 + Math.pow(random(), 7) * 2.8;
+    brightness[i] = 0.12 + Math.pow(random(), 3.2) * 0.75;
+  }
+
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(positions, 3));
+  geometry.setAttribute('aColor', new BufferAttribute(colors, 3));
+  geometry.setAttribute('aSize', new BufferAttribute(sizes, 1));
+  geometry.setAttribute('aBrightness', new BufferAttribute(brightness, 1));
+  return geometry;
+}
+
+export function Starfield() {
+  const dpr = useThree((state) => state.viewport.dpr);
+  const geometry = useMemo(buildStars, []);
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: starsVertexShader,
+        fragmentShader: starsFragmentShader,
+        uniforms: { uPixelRatio: { value: 1 } },
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    material.uniforms.uPixelRatio.value = dpr;
+  }, [material, dpr]);
+
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
+
+  return <points geometry={geometry} material={material} frustumCulled={false} renderOrder={-1} />;
+}
