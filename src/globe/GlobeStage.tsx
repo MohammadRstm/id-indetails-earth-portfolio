@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import type { Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
 import { orientationFor } from '../lib/geo';
@@ -80,7 +80,8 @@ export function GlobeStage({
     controller.focus(lat, lng, nowSeconds(), intro ? { holdSeconds: INTRO_HOLD_SECONDS } : {});
   }, [ready, activeProject, controller]);
 
-  useLayoutEffect(() => {
+  // A passive effect: the frame is a later sibling, so its ref is not attached yet during layout effects.
+  useEffect(() => {
     const viewport = viewportRef.current;
     const frame = frameRef.current;
     if (!viewport || !frame) return;
