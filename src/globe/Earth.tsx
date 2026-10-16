@@ -20,12 +20,10 @@ export function Earth({ textures, uniforms }: EarthProps) {
         fragmentShader: earthFragmentShader,
         uniforms: {
           uDay: { value: textures.day },
-          uLights: { value: textures.lights },
           uWater: { value: textures.water },
           uNormal: { value: textures.normal },
           uNormalStrength: { value: NORMAL_STRENGTH },
           uSunDir: uniforms.uSunDir,
-          uAtmosphere: uniforms.uAtmosphere,
           uReveal: uniforms.uReveal,
         },
       }),

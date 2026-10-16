@@ -20,30 +20,6 @@
   cursor: grabbing;
 }
 
-.globe-stage__halo {
-  position: absolute;
-  top: var(--globe-y);
-  left: var(--globe-x);
-  width: calc(var(--globe-d) * 2.3);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    rgba(62, 140, 255, 0.16) 0%,
-    rgba(40, 104, 214, 0.07) 42%,
-    rgba(20, 60, 140, 0.02) 70%,
-    transparent 100%
-  );
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 2s ease;
-  pointer-events: none;
-}
-
-.globe-stage[data-ready='true'] .globe-stage__halo {
-  opacity: 1;
-}
-
 /* Keeps the project text readable where the close-up globe runs behind it. */
 .globe-stage__scrim {
   position: absolute;

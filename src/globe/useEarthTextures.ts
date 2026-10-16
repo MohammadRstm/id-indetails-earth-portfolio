@@ -3,7 +3,6 @@ import { LoadingManager, RedFormat, SRGBColorSpace, TextureLoader, type Texture 
 
 export interface EarthTextures {
   day: Texture;
-  lights: Texture;
   normal: Texture;
   water: Texture;
 }
@@ -25,13 +24,12 @@ function textureUrls(): Record<keyof EarthTextures, string> {
   const size = prefersHighResolution() ? '4k' : '2k';
   return {
     day: `${TEXTURE_ROOT}/earth-day-${size}.jpg`,
-    lights: `${TEXTURE_ROOT}/earth-lights-4k.jpg`,
     normal: `${TEXTURE_ROOT}/earth-normal-${size}.jpg`,
     water: `${TEXTURE_ROOT}/earth-water-${size}.jpg`,
   };
 }
 
-const TEXTURE_COUNT = 4;
+const TEXTURE_COUNT = 3;
 
 /**
  * Loads the Earth maps outside React Suspense so progress and failure can be
@@ -57,13 +55,12 @@ export function useEarthTextures(enabled: boolean): EarthTextureState {
         return texture;
       });
 
-    Promise.all([load(urls.day), load(urls.lights), load(urls.normal), load(urls.water)])
-      .then(([day, lights, normal, water]) => {
+    Promise.all([load(urls.day), load(urls.normal), load(urls.water)])
+      .then(([day, normal, water]) => {
         day.colorSpace = SRGBColorSpace;
-        // Greyscale maps only need one channel on the GPU.
-        lights.format = RedFormat;
+        // The water mask only needs one channel on the GPU.
         water.format = RedFormat;
-        if (!cancelled) setState({ status: 'ready', textures: { day, lights, normal, water } });
+        if (!cancelled) setState({ status: 'ready', textures: { day, normal, water } });
       })
       .catch((error: unknown) => {
         console.warn('Earth textures failed to load; showing the simplified globe.', error);

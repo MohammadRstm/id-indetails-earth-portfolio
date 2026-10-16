@@ -1,6 +1,6 @@
 # ID-Indetails project globe
 
-A cinematic 3D Earth portfolio for ID-Indetails, a software engineering company. A rotating globe carries a marker for every project; picking a marker (or stepping through the projects) turns the globe to that place and shows the project beside it. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, atmosphere, markers, routes and stars.
+A cinematic 3D Earth portfolio for ID-Indetails, a software engineering company. A rotating globe carries a marker for every project; picking a marker (or stepping through the projects) turns the globe to that place and shows the project beside it. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, markers, routes and stars.
 
 All projects shown are fictional demonstrations, and the About copy is placeholder text for the company to replace.
 
@@ -60,8 +60,8 @@ src/
 - `MarkerBeacons.tsx` draws a glowing dot and ring on the surface for each place. The selected one also gets a second ring, an expanding pulse and a short beam of light. `Routes.tsx` draws dashed great-circle arcs along a minimum spanning tree of the places (`minimumSpanningTree` in `lib/geo.ts`); arcs touching the selected place are bright and flow away from it. Both depth-test against the Earth, and their pulse and flow run only while rotation is on and reduced motion is off (`effectUniforms.ts`).
 - `GlobeController.ts` owns the orientation logic: automatic spin, drag with inertia, smooth focus transitions, the holds in between and the zoom (0 overview, 1 close-up). The zoom stays out while a focus turn has more than about 0.45 rad to go, is 1 during the hold after a focus, and returns to 0 when the spin resumes; with rotation off it stays where it was. It takes time as an argument and has no React or three.js dependency.
 - `MarkerProjector.ts` projects the marker buttons onto the screen each frame, fades out those past the horizon and flags the stage while zoomed in so every visible place shows its name.
-- `shaders.ts` contains the GLSL; `sceneUniforms.ts` holds the uniforms shared by every globe material (sun direction, atmosphere colour, reveal).
-- `Earth.tsx`, `FallbackEarth.tsx`, `Atmosphere.tsx` and `Starfield.tsx` are the scene objects.
+- `shaders.ts` contains the GLSL; `sceneUniforms.ts` holds the uniforms shared by every globe material (sun direction, reveal).
+- `Earth.tsx`, `FallbackEarth.tsx` and `Starfield.tsx` are the scene objects.
 - `useEarthTextures.ts` loads the Earth maps outside React Suspense so progress and failure can be shown in the page, and disposes them on unmount.
 - `GlobeLayout.ts` carries the measured globe position and size from the DOM to the scene.
 
@@ -85,7 +85,6 @@ Earth textures in `public/textures` were downloaded from NASA Earth Observatory 
 | File                                      | Source                                                                                                                 |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `earth-day-4k.jpg`, `earth-day-2k.jpg`    | Blue Marble Next Generation, `world.topo.bathy.200412` (5400x2700)                                                      |
-| `earth-lights-4k.jpg`                     | Black Marble 2016, `BlackMarble_2016_01deg.jpg` (3600x1800), warm artificial light extracted and bluish terrain removed |
 | `earth-water-4k.jpg`, `earth-water-2k.jpg`  | GEBCO bathymetry, `gebco_08_rev_bath_21600x10800.jpg`, thresholded at full resolution, united with blue pixels from Blue Marble so shallow seas (Azov, North Sea) count as water |
 | `earth-normal-4k.jpg`, `earth-normal-2k.jpg` | GEBCO topography, `gebco_08_rev_elev_21600x10800.jpg`, turned into a tangent-space normal map (R east, G north) with exaggerated slopes |
 

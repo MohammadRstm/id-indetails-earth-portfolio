@@ -2,7 +2,6 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Group, PerspectiveCamera } from 'three';
 import type { LocationGroup } from '../lib/geo';
-import { Atmosphere } from './Atmosphere';
 import { createEffectUniforms, type EffectUniforms } from './effectUniforms';
 import { Earth } from './Earth';
 import { FallbackEarth } from './FallbackEarth';
@@ -46,7 +45,6 @@ export function GlobeScene({ groups, activeGroupId, controller, projector, layou
             </>
           )}
         </group>
-        {textures.status !== 'loading' && <Atmosphere uniforms={uniforms} />}
       </group>
       <GlobeDriver
         controller={controller}
@@ -110,8 +108,6 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRe
       frameCamera(camera, layout, zoom, width, height);
       framed.current = { version: layout.version, width, height, zoom };
     }
-
-    sceneUniforms.current.uZoom.value = zoom;
 
     const globe = globeRef.current;
     if (globe) globe.rotation.set(controller.pitch - controller.tilt, controller.yaw, 0);

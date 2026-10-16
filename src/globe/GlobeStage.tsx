@@ -138,7 +138,6 @@ export function GlobeStage({
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
     >
-      <div className="globe-stage__halo" aria-hidden="true" />
       {webgl && (
         <div className="globe-stage__canvas" role="img" aria-label="Rotating 3D Earth with project locations marked">
           <Canvas

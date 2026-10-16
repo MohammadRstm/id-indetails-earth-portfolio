@@ -12,7 +12,6 @@ export function FallbackEarth({ uniforms }: { uniforms: SceneUniforms }) {
         fragmentShader: fallbackEarthFragmentShader,
         uniforms: {
           uSunDir: uniforms.uSunDir,
-          uAtmosphere: uniforms.uAtmosphere,
           uReveal: uniforms.uReveal,
         },
       }),
