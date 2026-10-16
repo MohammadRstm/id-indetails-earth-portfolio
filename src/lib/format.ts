@@ -4,7 +4,11 @@ const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numer
 export function formatStartDate(value: string): string | null {
   const match = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(value);
   if (!match) return null;
-  const [, year, month, day] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, day ? Number(day) : 1));
-  return Number.isNaN(date.getTime()) ? null : monthYear.format(date);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = match[3] ? Number(match[3]) : 1;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  // Date.UTC rolls invalid parts over (month 13, 31 February); reject those instead.
+  const valid = date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  return valid ? monthYear.format(date) : null;
 }
