@@ -54,31 +54,23 @@ function buildStars(): BufferGeometry {
 
 export function Starfield() {
   const dpr = useThree((state) => state.viewport.dpr);
-  const geometry = useMemo(buildStars, []);
+  const geometry = useMemo(() => buildStars(), []);
+  // The pixel ratio only changes when the window moves between screens or zooms, so a new material then is cheap.
   const material = useMemo(
     () =>
       new ShaderMaterial({
         vertexShader: starsVertexShader,
         fragmentShader: starsFragmentShader,
-        uniforms: { uPixelRatio: { value: 1 } },
+        uniforms: { uPixelRatio: { value: dpr } },
         transparent: true,
         depthWrite: false,
         blending: AdditiveBlending,
       }),
-    [],
+    [dpr],
   );
 
-  useEffect(() => {
-    material.uniforms.uPixelRatio.value = dpr;
-  }, [material, dpr]);
-
-  useEffect(
-    () => () => {
-      geometry.dispose();
-      material.dispose();
-    },
-    [geometry, material],
-  );
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
 
   return <points geometry={geometry} material={material} frustumCulled={false} renderOrder={-1} />;
 }

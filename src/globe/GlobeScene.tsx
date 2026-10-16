@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Group, Mesh, PerspectiveCamera } from 'three';
 import { Atmosphere } from './Atmosphere';
 import { Earth } from './Earth';
@@ -24,7 +24,7 @@ export interface GlobeSceneProps {
 }
 
 export function GlobeScene({ controller, projector, layout, textures }: GlobeSceneProps) {
-  const uniforms = useMemo(createSceneUniforms, []);
+  const [uniforms] = useState(createSceneUniforms);
   const globeRef = useRef<Group>(null);
   const cloudsRef = useRef<Mesh>(null);
 
@@ -81,12 +81,18 @@ function GlobeDriver({ controller, projector, layout, uniforms, globeRef, clouds
   const invalidate = useThree((state) => state.invalidate);
   const framed = useRef({ version: -1, width: 0, height: 0 });
   const reveal = useRef(0);
+  // The uniform object is shared by every globe material and mutated in place each frame.
+  const revealUniform = useRef(uniforms.uReveal);
 
   useEffect(() => {
     controller.setWakeHandler(() => invalidate());
     invalidate();
     return () => controller.setWakeHandler(() => {});
   }, [controller, invalidate]);
+
+  useEffect(() => {
+    revealUniform.current = uniforms.uReveal;
+  }, [uniforms]);
 
   useEffect(() => {
     if (revealing) invalidate();
@@ -112,7 +118,7 @@ function GlobeDriver({ controller, projector, layout, uniforms, globeRef, clouds
 
     if (revealing && reveal.current < 1) {
       reveal.current = Math.min(1, reveal.current + dt / REVEAL_SECONDS);
-      uniforms.uReveal.value = 1 - Math.pow(1 - reveal.current, 3);
+      revealUniform.current.value = 1 - Math.pow(1 - reveal.current, 3);
       active = true;
     }
 
