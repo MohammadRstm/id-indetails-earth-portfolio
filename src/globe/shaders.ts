@@ -1,7 +1,7 @@
 /**
  * GLSL for the globe. Lighting is computed in world space; the sun direction
- * is fixed relative to the camera so the visible face stays lit while the
- * terminator and city lights sit along the right-hand limb.
+ * is fixed relative to the camera, so the visible face stays lit from the
+ * upper left and falls off softly toward the lower right.
  */
 
 const sphereVertex = /* glsl */ `
@@ -28,8 +28,8 @@ export const earthFragmentShader = /* glsl */ `
   uniform sampler2D uDay;
   uniform sampler2D uLights;
   uniform sampler2D uWater;
-  uniform sampler2D uRelief;
-  uniform vec2 uReliefTexel;
+  uniform sampler2D uNormal;
+  uniform float uNormalStrength;
   uniform vec3 uSunDir;
   uniform vec3 uAtmosphere;
   uniform float uReveal;
@@ -39,99 +39,113 @@ export const earthFragmentShader = /* glsl */ `
   varying vec3 vPosW;
   varying vec3 vEastW;
 
+  // Palette values are written as sRGB and converted once, so they read like the design tokens.
+  vec3 toLinear(vec3 c) { return pow(c, vec3(2.2)); }
+
+  float hash21(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+
+  const vec3 OCEAN = vec3(0.027, 0.045, 0.086);   // #070c16
+  const vec3 SHEEN = vec3(0.40, 0.55, 0.85);
+  const vec3 LAND_TINT = vec3(0.87, 0.92, 1.0);
+  const vec3 CITY = vec3(0.357, 0.89, 1.0);       // #5be3ff
+  const vec3 FILL_DIR = vec3(0.72, -0.34, 0.6);
+  const vec3 FILL_COLOR = vec3(0.30, 0.45, 0.80);
+
   void main() {
     vec3 N = normalize(vNormalW);
     vec3 east = normalize(vEastW - N * dot(vEastW, N));
     vec3 north = cross(N, east);
 
-    // Relief: perturb the normal from the elevation map's local slope.
-    float h = texture2D(uRelief, vUv).r;
-    float hEast = texture2D(uRelief, vUv + vec2(uReliefTexel.x, 0.0)).r;
-    float hNorth = texture2D(uRelief, vUv + vec2(0.0, uReliefTexel.y)).r;
-    vec3 Nb = normalize(N - 2.4 * ((hEast - h) * east + (hNorth - h) * north));
+    // Terrain: tangent-space normal map, slopes scaled before renormalising.
+    vec3 t = texture2D(uNormal, vUv).xyz * 2.0 - 1.0;
+    t = normalize(vec3(t.xy * uNormalStrength, max(t.z, 0.05)));
+    vec3 Nb = normalize(east * t.x + north * t.y + N * t.z);
 
     vec3 L = normalize(uSunDir);
     vec3 V = normalize(cameraPosition - vPosW);
     float sunN = dot(N, L);
-    float dayMix = smoothstep(-0.16, 0.26, sunN);
-    float diffuse = clamp(dot(Nb, L), 0.0, 1.0);
+    float NdotV = clamp(dot(N, V), 0.0, 1.0);
 
-    vec3 albedo = texture2D(uDay, vUv).rgb;
+    // Crisp, antialiased coastline from the water mask.
     float water = texture2D(uWater, vUv).r;
-    albedo = mix(albedo, albedo * vec3(0.72, 0.88, 1.08), water * 0.55);
+    float edge = max(fwidth(water) * 0.75, 0.012);
+    float sea = smoothstep(0.5 - edge, 0.5 + edge, water);
 
-    vec3 dayColor = albedo * (0.035 + 1.2 * diffuse);
-    float dusk = smoothstep(-0.06, 0.1, sunN) * (1.0 - smoothstep(0.1, 0.34, sunN));
-    dayColor *= mix(vec3(1.0), vec3(1.1, 0.84, 0.7), dusk * 0.55);
+    // Land: luminance of the colour map becomes a cool grey; bright, unsaturated areas turn to ice.
+    vec3 day = texture2D(uDay, vUv).rgb;
+    float lum = pow(dot(day, vec3(0.2126, 0.7152, 0.0722)), 1.0 / 2.2);
+    float tone = mix(0.2, 0.46, smoothstep(0.07, 0.62, lum));
+    tone = mix(tone, 0.64, smoothstep(0.66, 0.92, lum));
+    vec3 landAlbedo = toLinear(vec3(tone) * LAND_TINT);
 
+    // Soft key light with a wide wrap: the night side fades rather than cutting off, and keeps its relief.
+    float key = clamp((dot(Nb, L) + 0.4) / 1.4, 0.0, 1.0);
+    float fill = clamp(dot(Nb, normalize(FILL_DIR)), 0.0, 1.0);
+    vec3 landLight = vec3(0.1 + 1.3 * pow(key, 1.35)) + toLinear(FILL_COLOR) * fill * 0.22;
+    vec3 land = landAlbedo * landLight;
+
+    // Ocean: near-black, flat and glossy, with a broad sheen and a slight lift toward the limb.
     vec3 H = normalize(L + V);
     float NdotH = max(dot(N, H), 0.0);
-    float spec = water * (pow(NdotH, 110.0) * 0.85 + pow(NdotH, 14.0) * 0.05);
-    vec3 specColor = vec3(0.74, 0.88, 1.0) * spec * smoothstep(0.0, 0.25, sunN);
+    float gloss = pow(NdotH, 36.0) * 0.4 + pow(NdotH, 7.0) * 0.07;
+    float limb = pow(1.0 - NdotV, 3.0);
+    vec3 ocean = toLinear(OCEAN) * mix(0.8, 1.5, smoothstep(-0.5, 0.7, sunN));
+    ocean += toLinear(SHEEN) * gloss * 0.7;
+    ocean += toLinear(vec3(0.09, 0.17, 0.3)) * limb * 0.5;
 
-    float lights = pow(texture2D(uLights, vUv).r, 1.35);
-    float nightMix = 1.0 - smoothstep(-0.28, 0.05, sunN);
-    vec3 lightColor = vec3(1.0, 0.82, 0.58) * lights * nightMix * 1.5;
+    vec3 color = mix(land, ocean, sea);
 
-    vec3 nightBase = albedo * vec3(0.01, 0.016, 0.03);
-    vec3 color = mix(nightBase, dayColor, dayMix) + specColor + lightColor;
+    // City lights: the map decides how dense the pinpoints are; each point is one tiny cell of a fixed grid.
+    // Where cells shrink below a pixel the map's own smooth brightness takes over, so nothing shimmers.
+    float lightMap = texture2D(uLights, vUv).r;
+    vec2 cell = vUv * vec2(8192.0, 4096.0);
+    float cellsPerPixel = max(fwidth(cell.x), fwidth(cell.y));
+    float chance = smoothstep(0.08, 0.6, lightMap);
+    float point = step(hash21(floor(cell)), chance) * smoothstep(0.5, 0.12, length(fract(cell) - 0.5));
+    float pin = mix(point, chance * 0.35, smoothstep(0.7, 1.4, cellsPerPixel));
+    float nightness = 1.0 - smoothstep(-0.35, 0.25, sunN);
+    color += toLinear(CITY) * pin * mix(0.4, 1.0, nightness) * 2.6;
 
-    // Atmospheric haze towards the limb, brighter on the sunlit side.
-    float fresnel = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.6);
-    float atmoLight = smoothstep(-0.35, 0.5, sunN);
-    color = mix(color, uAtmosphere * (0.3 + atmoLight), fresnel * (0.18 + 0.6 * atmoLight));
+    // Thin atmospheric veil at the limb.
+    float atmoLight = smoothstep(-0.4, 0.6, sunN);
+    color += uAtmosphere * limb * 0.1 * (0.3 + atmoLight);
 
-    // Gentle shoulder so glints and dense city lights roll off instead of clipping.
+    // Gentle shoulder so highlights roll off instead of clipping.
     color = color / (1.0 + max(color - 0.85, 0.0));
     gl_FragColor = vec4(color * uReveal, 1.0);
     #include <colorspace_fragment>
   }
 `;
 
-export const cloudsFragmentShader = /* glsl */ `
-  uniform sampler2D uClouds;
-  uniform vec3 uSunDir;
-  uniform float uReveal;
-  uniform float uOpacity;
-
-  varying vec2 vUv;
-  varying vec3 vNormalW;
-  varying vec3 vPosW;
-
-  void main() {
-    vec3 N = normalize(vNormalW);
-    vec3 L = normalize(uSunDir);
-    vec3 V = normalize(cameraPosition - vPosW);
-    float density = smoothstep(0.22, 0.9, texture2D(uClouds, vUv).r);
-    float sunN = dot(N, L);
-    float lit = smoothstep(-0.12, 0.3, sunN);
-    vec3 color = mix(vec3(0.012, 0.018, 0.03), vec3(0.94, 0.97, 1.0) * (0.3 + 0.8 * max(sunN, 0.0)), lit);
-    float limb = smoothstep(0.0, 0.3, dot(N, V));
-    gl_FragColor = vec4(color, density * uOpacity * limb * uReveal);
-    #include <colorspace_fragment>
-  }
-`;
-
-export const cloudsVertexShader = sphereVertex;
-
 export const atmosphereVertexShader = /* glsl */ `
+  uniform float uZoom;
+  uniform float uRadiusFar;
+  uniform float uRadiusNear;
   varying vec3 vNormalW;
   varying vec3 vPosW;
 
   void main() {
-    vec4 world = modelMatrix * vec4(position, 1.0);
+    // The shell thins as the camera closes in, so the close-up keeps a rim instead of a wide wash.
+    float radius = mix(uRadiusFar, uRadiusNear, uZoom);
+    vec4 world = modelMatrix * vec4(position * radius, 1.0);
     vPosW = world.xyz;
     vNormalW = normalize(mat3(modelMatrix) * normal);
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
 
-/** Rendered on the back faces of a slightly larger shell with additive blending. */
+/** Rendered on the back faces of a slightly larger shell, added to the colour and leaving alpha alone. */
 export const atmosphereFragmentShader = /* glsl */ `
   uniform vec3 uColor;
   uniform vec3 uSunDir;
-  uniform float uEdge;
   uniform float uReveal;
+  uniform float uZoom;
+  uniform float uRadiusFar;
+  uniform float uRadiusNear;
 
   varying vec3 vNormalW;
   varying vec3 vPosW;
@@ -139,12 +153,15 @@ export const atmosphereFragmentShader = /* glsl */ `
   void main() {
     vec3 N = normalize(vNormalW);
     vec3 V = normalize(cameraPosition - vPosW);
+    float radius = mix(uRadiusFar, uRadiusNear, uZoom);
+    // -dot(N, V) where the shell's back face meets the Earth's limb.
+    float edge = sqrt(1.0 - 1.0 / (radius * radius));
     // 1 at the Earth's limb, 0 at the outer edge of the shell.
-    float rim = clamp(-dot(N, V) / uEdge, 0.0, 1.0);
+    float rim = clamp(-dot(N, V) / edge, 0.0, 1.0);
     float glow = pow(rim, 3.2) * 1.15 + pow(rim, 12.0) * 0.8;
     vec3 radial = normalize(N - V * dot(N, V));
     float sun = smoothstep(-0.65, 0.6, dot(radial, normalize(uSunDir)));
-    vec3 color = uColor * glow * (0.12 + 1.05 * sun);
+    vec3 color = uColor * glow * (0.12 + 1.05 * sun) * mix(1.0, 0.62, uZoom);
     gl_FragColor = vec4(color * uReveal, 1.0);
     #include <colorspace_fragment>
   }
@@ -162,14 +179,14 @@ export const fallbackEarthFragmentShader = /* glsl */ `
   void main() {
     vec3 N = normalize(vNormalW);
     vec3 V = normalize(cameraPosition - vPosW);
-    float diffuse = clamp(dot(N, normalize(uSunDir)), 0.0, 1.0);
-    vec3 color = vec3(0.025, 0.06, 0.12) * (0.4 + 0.9 * diffuse);
+    float diffuse = clamp(dot(N, normalize(uSunDir)) * 0.5 + 0.5, 0.0, 1.0);
+    vec3 color = vec3(0.0013, 0.0027, 0.006) * (0.8 + 1.4 * diffuse);
     vec2 cells = vUv * vec2(24.0, 12.0);
     vec2 grid = abs(fract(cells - 0.5) - 0.5) / fwidth(cells);
     float line = 1.0 - min(min(grid.x, grid.y), 1.0);
-    color += vec3(0.32, 0.8, 1.0) * line * (0.12 + 0.2 * diffuse);
-    float fresnel = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.6);
-    color = mix(color, uAtmosphere, fresnel * 0.5);
+    color += vec3(0.105, 0.76, 1.0) * line * (0.03 + 0.07 * diffuse);
+    float limb = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
+    color += uAtmosphere * limb * 0.06;
     gl_FragColor = vec4(color * uReveal, 1.0);
     #include <colorspace_fragment>
   }
@@ -199,7 +216,7 @@ export const starsFragmentShader = /* glsl */ `
     float d = length(gl_PointCoord - 0.5);
     float alpha = smoothstep(0.5, 0.0, d);
     alpha *= alpha;
-    gl_FragColor = vec4(vColor * vBrightness * alpha, 1.0);
+    gl_FragColor = vec4(vColor * vBrightness * alpha, alpha);
     #include <colorspace_fragment>
   }
 `;

@@ -44,6 +44,21 @@
   opacity: 1;
 }
 
+/* Keeps the project text readable where the close-up globe runs behind it. */
+.globe-stage__scrim {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 46%;
+  background: linear-gradient(to left, rgba(4, 8, 18, 0.86) 0%, rgba(4, 8, 18, 0.74) 52%, rgba(4, 8, 18, 0) 100%);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  pointer-events: none;
+}
+
+.globe-stage[data-zoomed='true'] .globe-stage__scrim {
+  opacity: 1;
+}
+
 .globe-stage__canvas {
   position: absolute;
   inset: 0;
@@ -84,84 +99,6 @@
   pointer-events: none;
 }
 
-.globe-marker::before {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(207, 234, 255, 0.42);
-  border-radius: 50%;
-  transition:
-    inset 0.3s var(--ease-out),
-    border-color 0.3s ease;
-}
-
-.globe-marker__dot {
-  position: absolute;
-  inset: 0;
-  width: 6px;
-  height: 6px;
-  margin: auto;
-  border-radius: 50%;
-  background: var(--ice);
-  box-shadow:
-    0 0 0 1.5px rgba(4, 8, 18, 0.65),
-    0 0 10px rgba(130, 210, 255, 0.55);
-  transition:
-    transform 0.3s var(--ease-out),
-    background-color 0.3s ease;
-}
-
-.globe-marker:hover::before {
-  inset: 4px;
-  border-color: rgba(91, 227, 255, 0.9);
-}
-
-.globe-marker:hover .globe-marker__dot {
-  transform: scale(1.2);
-}
-
-.globe-marker[data-active='true']::before {
-  inset: 3px;
-  border-color: rgba(91, 227, 255, 0.85);
-}
-
-.globe-marker[data-active='true'] .globe-marker__dot {
-  background: var(--cyan);
-  transform: scale(1.35);
-  box-shadow:
-    0 0 0 1.5px rgba(4, 8, 18, 0.75),
-    0 0 16px 3px rgba(91, 227, 255, 0.65);
-}
-
-.globe-marker__pulse {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--cyan);
-  border-radius: 50%;
-  opacity: 0;
-}
-
-.globe-marker[data-active='true'] .globe-marker__pulse {
-  animation: marker-pulse 3s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
-}
-
-.globe-stage[data-rotating='false'] .globe-marker__pulse {
-  animation: none;
-}
-
-@keyframes marker-pulse {
-  0% {
-    opacity: 0.85;
-    transform: scale(0.45);
-  }
-
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(2.1);
-  }
-}
-
 .globe-marker__label {
   position: absolute;
   top: 50%;
@@ -182,7 +119,8 @@
   transform: translate(-4px, -50%);
   transition:
     opacity 0.2s ease,
-    transform 0.3s var(--ease-out);
+    transform 0.3s var(--ease-out),
+    left 0.4s var(--ease-out);
   pointer-events: none;
 }
 
@@ -192,27 +130,21 @@
   color: var(--cyan);
 }
 
-.globe-marker:hover .globe-marker__label {
+.globe-marker[data-active='true'] .globe-marker__label,
+.globe-marker:hover .globe-marker__label,
+.globe-stage[data-zoomed='true'] .globe-marker__label {
   opacity: 1;
   transform: translate(0, -50%);
 }
 
-/* Leader line from the active marker to the panel -------------------------- */
-
-.globe-stage__leader {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
+/* The beacons grow with the close-up, so the names move out of their way. */
+.globe-stage[data-zoomed='true'] .globe-marker__label {
+  left: calc(100% + 30px);
 }
 
-.globe-stage__leader path {
-  fill: none;
-  stroke: rgba(91, 227, 255, 0.5);
-  stroke-width: 1;
-  opacity: 0;
+.globe-stage[data-zoomed='true'] .globe-marker:not([data-active='true'], :hover) .globe-marker__label {
+  color: var(--ice);
+  opacity: 0.78;
 }
 
 /* Loading and notices --------------------------------------------------------- */
@@ -280,18 +212,12 @@
     touch-action: pan-y;
   }
 
-  .globe-stage__leader {
+  .globe-stage__scrim {
     display: none;
-  }
-
-  .globe-marker[data-active='true'] .globe-marker__label {
-    opacity: 1;
-    transform: translate(0, -50%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .globe-marker[data-active='true'] .globe-marker__pulse,
   .globe-loader__ring::after {
     animation: none;
   }

@@ -1,4 +1,3 @@
-import type { Ref } from 'react';
 import type { Project } from '../data/project';
 import { useCrossfade } from '../hooks/useCrossfade';
 import { formatCoordinates, type LocationGroup } from '../lib/geo';
@@ -8,21 +7,20 @@ import { ProjectFacts } from './ProjectFacts';
 interface ProjectPanelProps {
   project: Project;
   group: LocationGroup;
-  anchorRef: Ref<HTMLParagraphElement>;
   onSelectProject: (projectId: string) => void;
   onOpenDetails: () => void;
 }
 
 const FADE_MS = 200;
 
-export function ProjectPanel({ project, group, anchorRef, onSelectProject, onOpenDetails }: ProjectPanelProps) {
+export function ProjectPanel({ project, group, onSelectProject, onOpenDetails }: ProjectPanelProps) {
   const { shown, leaving } = useCrossfade(project, FADE_MS);
   const { location } = shown;
   const neighbours = group.projects.length > 1 && group.projects.includes(shown) ? group.projects : null;
 
   return (
     <article className="readout" data-leaving={leaving} aria-labelledby="project-title">
-      <p className="readout__place" ref={anchorRef}>
+      <p className="readout__place">
         {location.city}, {location.country}
       </p>
       <p className="readout__coords">

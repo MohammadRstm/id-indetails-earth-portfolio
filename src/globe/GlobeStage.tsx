@@ -15,7 +15,6 @@ import './globe.css';
 const globeFill = (frameWidth: number) => (frameWidth < 600 ? 0.92 : 0.86);
 /** The opening turn starts this far west of the featured project. */
 const INTRO_YAW_OFFSET = -1.05;
-const INTRO_HOLD_SECONDS = 2.5;
 const DRAG_RADIANS_PER_RADIUS = 1.1;
 
 const nowSeconds = () => performance.now() / 1000;
@@ -28,8 +27,6 @@ interface GlobeStageProps {
   reducedMotion: boolean;
   /** Empty layout cell the globe is centred in. */
   frameRef: RefObject<HTMLElement | null>;
-  /** Element the leader line from the active marker points to. */
-  leaderAnchorRef: RefObject<HTMLElement | null>;
   onSelectGroup: (groupId: string) => void;
 }
 
@@ -40,7 +37,6 @@ export function GlobeStage({
   autoRotate,
   reducedMotion,
   frameRef,
-  leaderAnchorRef,
   onSelectGroup,
 }: GlobeStageProps) {
   const [webgl] = useState(isWebGL2Available);
@@ -56,28 +52,22 @@ export function GlobeStage({
   const [layout] = useState(() => new GlobeLayout());
   const [contextLost, setContextLost] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const leaderRef = useRef<SVGPathElement>(null);
   const drag = useRef<{ pointerId: number; x: number; y: number; pitch: boolean } | null>(null);
-  const introPlayed = useRef(false);
 
   useEffect(() => controller.setAutoRotate(autoRotate), [controller, autoRotate]);
   useEffect(() => controller.setReducedMotion(reducedMotion), [controller, reducedMotion]);
 
-  useEffect(() => {
-    projector.setActive(activeGroupId);
-    controller.requestFrame();
-  }, [projector, controller, activeGroupId]);
+  useEffect(() => controller.requestFrame(), [controller, activeGroupId]);
 
   useEffect(() => {
-    projector.setLeaderLine(viewportRef.current, leaderRef.current, leaderAnchorRef.current);
-  });
+    projector.setStage(viewportRef.current);
+    return () => projector.setStage(null);
+  }, [projector]);
 
   useEffect(() => {
     if (!ready) return;
     const { lat, lng } = activeProject.location;
-    const intro = !introPlayed.current;
-    introPlayed.current = true;
-    controller.focus(lat, lng, nowSeconds(), intro ? { holdSeconds: INTRO_HOLD_SECONDS } : {});
+    controller.focus(lat, lng, nowSeconds());
   }, [ready, activeProject, controller]);
 
   // A passive effect: the frame is a later sibling, so its ref is not attached yet during layout effects.
@@ -91,7 +81,7 @@ export function GlobeStage({
       const centerX = inner.left - outer.left + inner.width / 2;
       const centerY = inner.top - outer.top + inner.height / 2;
       const diameter = Math.min(inner.width, inner.height) * globeFill(inner.width);
-      layout.update(centerX, centerY, diameter);
+      layout.update(centerX, centerY, diameter, inner.width, inner.height);
       viewport.style.setProperty('--globe-x', `${centerX}px`);
       viewport.style.setProperty('--globe-y', `${centerY}px`);
       viewport.style.setProperty('--globe-d', `${diameter}px`);
@@ -115,7 +105,7 @@ export function GlobeStage({
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current;
     if (!current || current.pointerId !== event.pointerId) return;
-    const radiansPerPixel = DRAG_RADIANS_PER_RADIUS / Math.max(120, layout.diameter / 2);
+    const radiansPerPixel = (DRAG_RADIANS_PER_RADIUS / Math.max(120, layout.diameter / 2)) * controller.dragScale;
     const deltaPitch = current.pitch ? (event.clientY - current.y) * radiansPerPixel : 0;
     controller.dragBy((event.clientX - current.x) * radiansPerPixel, deltaPitch, nowSeconds());
     current.x = event.clientX;
@@ -166,10 +156,18 @@ export function GlobeStage({
               gl.domElement.addEventListener('webglcontextrestored', () => setContextLost(false));
             }}
           >
-            <GlobeScene controller={controller} projector={projector} layout={layout} textures={textures} />
+            <GlobeScene
+              groups={groups}
+              activeGroupId={activeGroupId}
+              controller={controller} projector={projector}
+              layout={layout}
+              textures={textures}
+            />
           </Canvas>
         </div>
       )}
+
+      <div className="globe-stage__scrim" aria-hidden="true" />
 
       <div className="globe-stage__markers">
         {webgl &&
@@ -184,10 +182,6 @@ export function GlobeStage({
             />
           ))}
       </div>
-
-      <svg className="globe-stage__leader" aria-hidden="true">
-        <path ref={leaderRef} />
-      </svg>
 
       {webgl && textures.status === 'loading' && (
         <div className="globe-loader" role="status">
@@ -242,8 +236,6 @@ function GlobeMarker({ group, active, projector, onSelect, onHover }: GlobeMarke
       onPointerEnter={() => onHover(true)}
       onPointerLeave={() => onHover(false)}
     >
-      <span className="globe-marker__pulse" />
-      <span className="globe-marker__dot" />
       <span className="globe-marker__label">
         {group.city}
         {group.projects.length > 1 && <span className="globe-marker__count">{group.projects.length} projects</span>}

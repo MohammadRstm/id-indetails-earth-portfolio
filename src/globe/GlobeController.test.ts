@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { orientationFor, wrapAngle } from '../lib/geo';
-import { GlobeController, PITCH_LIMIT, smoothDamp } from './GlobeController';
+import { Euler, Vector3 } from 'three';
+import { latLngToVector, orientationFor, wrapAngle } from '../lib/geo';
+import { GlobeController, PITCH_LIMIT, smoothDamp, ZOOM_PITCH_BIAS } from './GlobeController';
 
 const FRAME = 1 / 60;
 const DEG = Math.PI / 180;
@@ -102,9 +103,10 @@ describe('focus', () => {
     const finished = runUntilIdle(controller, 0, 10);
 
     expect(controller.isTransitioning).toBe(false);
-    expect(finished).toBeLessThan(6);
+    expect(finished).toBeLessThan(9);
     expect(wrapAngle(controller.yaw - goal.yaw)).toBeCloseTo(0, 4);
     expect(controller.pitch).toBeCloseTo(goal.pitch, 4);
+    expect(controller.zoom).toBe(1);
   });
 
   it('keeps asking for frames while the transition is running', () => {
@@ -363,5 +365,179 @@ describe('dragging', () => {
 
     advance(controller, now, 15);
     expect(controller.yaw).toBeGreaterThan(releasedYaw + 0.05);
+  });
+});
+
+describe('zoom', () => {
+  it('starts zoomed out and idle', () => {
+    const controller = createController();
+    expect(controller.zoom).toBe(0);
+    expect(controller.tilt).toBe(0);
+    expect(controller.dragScale).toBe(1);
+    expect(controller.update(FRAME, FRAME)).toBe(false);
+  });
+
+  it('stays out while a far turn is under way, then moves in once the place is close', () => {
+    const goal = orientationFor(0, 0);
+    const controller = createController({ yaw: goal.yaw + 2 });
+    controller.focus(0, 0, 0);
+
+    let now = advance(controller, 0, 0.3);
+    expect(controller.zoom).toBeLessThan(0.05);
+
+    let zoomedInWhileFarAway = false;
+    while (controller.isTransitioning && now < 10) {
+      now += FRAME;
+      controller.update(FRAME, now);
+      const remaining = Math.abs(wrapAngle(controller.yaw - goal.yaw));
+      if (remaining > 0.5 && controller.zoom > 0.5) zoomedInWhileFarAway = true;
+    }
+    expect(zoomedInWhileFarAway).toBe(false);
+
+    runUntilIdle(controller, now);
+    expect(controller.zoom).toBe(1);
+  });
+
+  it('heads straight in when the place is already close', () => {
+    const controller = createController({ yaw: orientationFor(0, 0).yaw + 0.2 });
+    controller.focus(0, 0, 0);
+    advance(controller, 0, 0.5);
+    expect(controller.zoom).toBeGreaterThan(0.3);
+  });
+
+  it('eases out for a distant place and back in again', () => {
+    const controller = createController();
+    controller.focus(0, 0, 0, { instant: true });
+    expect(controller.zoom).toBe(1);
+
+    controller.focus(0, 120, 0);
+    let now = 0;
+    let lowest = 1;
+    let rising = false;
+    while (now < 12) {
+      now += FRAME;
+      const active = controller.update(FRAME, now);
+      if (controller.zoom < lowest) lowest = controller.zoom;
+      else if (controller.zoom > lowest + 0.05) rising = true;
+      if (!active) break;
+    }
+    expect(lowest).toBeLessThan(0.5);
+    expect(rising).toBe(true);
+    expect(controller.zoom).toBe(1);
+  });
+
+  it('keeps asking for frames while the zoom is still moving, then goes idle', () => {
+    const controller = createController();
+    controller.focus(0, 0, 0, { instant: true });
+    controller.focus(0, 150, 1);
+    expect(controller.update(FRAME, 1 + FRAME)).toBe(true);
+    const settledAt = runUntilIdle(controller, 1 + FRAME);
+    expect(controller.update(FRAME, settledAt + FRAME)).toBe(false);
+  });
+
+  it('stays zoomed in during the hold, and goes back out when the spin resumes', () => {
+    const controller = createController({ autoRotate: true });
+    controller.focus(0, 0, 0, { instant: true, holdSeconds: 5 });
+    let now = advance(controller, 0, 4.5);
+    expect(controller.zoom).toBe(1);
+
+    now = advance(controller, now, 6);
+    expect(controller.zoom).toBeLessThan(1);
+    expect(controller.update(FRAME, now + FRAME)).toBe(true);
+    advance(controller, now, 14);
+    expect(controller.zoom).toBe(0);
+  });
+
+  it('holds for about ten seconds by default', () => {
+    const controller = createController({ autoRotate: true });
+    controller.focus(0, 0, 0, { instant: true });
+    advance(controller, 0, 9.5);
+    expect(controller.zoom).toBe(1);
+    advance(controller, 9.5, 12);
+    expect(controller.zoom).toBeLessThan(1);
+  });
+
+  it('keeps its zoom with rotation off', () => {
+    const controller = createController({ autoRotate: false });
+    controller.focus(40, 10, 0);
+    const idleAt = runUntilIdle(controller, 0);
+    expect(controller.zoom).toBe(1);
+
+    advance(controller, idleAt, idleAt + 30);
+    expect(controller.zoom).toBe(1);
+    expect(controller.update(FRAME, idleAt + 30 + FRAME)).toBe(false);
+  });
+
+  it('keeps a zoomed view when rotation is switched off during the hold', () => {
+    const controller = createController({ autoRotate: true });
+    controller.focus(0, 0, 0, { instant: true });
+    controller.setAutoRotate(false);
+    advance(controller, 0, 30);
+    expect(controller.zoom).toBe(1);
+  });
+
+  it('jumps in with reduced motion', () => {
+    const controller = createController({ reducedMotion: true });
+    controller.focus(10, 20, 0);
+    expect(controller.zoom).toBe(1);
+  });
+
+  it('stays in while the pointer rests on a marker, and goes out afterwards', () => {
+    const controller = createController({ autoRotate: true });
+    controller.focus(0, 0, 0, { instant: true, holdSeconds: 1 });
+    controller.setHoverHold(true);
+    advance(controller, 0, 6);
+    expect(controller.zoom).toBe(1);
+    controller.setHoverHold(false);
+    advance(controller, 6, 12);
+    expect(controller.zoom).toBe(0);
+  });
+
+  it('keeps easing while the globe is being dragged', () => {
+    const controller = createController();
+    controller.focus(0, 0, 0, { instant: true });
+    controller.focus(0, 120, 0);
+    advance(controller, 0, 0.2);
+    controller.beginDrag(0.2);
+    expect(controller.isTransitioning).toBe(false);
+    const before = controller.zoom;
+    advance(controller, 0.2, 1.5);
+    expect(controller.zoom).toBeLessThan(before);
+  });
+
+  it('turns drags down as the camera moves in', () => {
+    const controller = createController();
+    expect(controller.dragScale).toBe(1);
+    controller.focus(0, 0, 0, { instant: true });
+    expect(controller.dragScale).toBeCloseTo(0.35);
+  });
+
+  it('puts the focused place the same angle above the screen centre, whatever its latitude', () => {
+    for (const [lat, lng] of [
+      [38.7223, -9.1393],
+      [-37.8136, 144.9631],
+      [64.1466, -21.9426],
+      [1.29, 103.85],
+    ]) {
+      const controller = createController();
+      controller.focus(lat, lng, 0, { instant: true });
+      const { x, y, z } = latLngToVector(lat, lng);
+      const place = new Vector3(x, y, z).applyEuler(new Euler(controller.pitch - controller.tilt, controller.yaw, 0, 'XYZ'));
+      expect(Math.asin(place.y)).toBeCloseTo(ZOOM_PITCH_BIAS, 6);
+      expect(place.x).toBeCloseTo(0, 6);
+      expect(place.z).toBeGreaterThan(0);
+    }
+  });
+
+  it('tips the globe back gradually as the zoom grows', () => {
+    const controller = createController();
+    controller.focus(20, 0, 0);
+    const tilts: number[] = [];
+    for (let now = FRAME; now < 8; now += FRAME) {
+      controller.update(FRAME, now);
+      tilts.push(controller.tilt);
+    }
+    expect(tilts[0]).toBeLessThan(tilts[tilts.length - 1]);
+    expect(controller.tilt).toBeGreaterThan(0);
   });
 });

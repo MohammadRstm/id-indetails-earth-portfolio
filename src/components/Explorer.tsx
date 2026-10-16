@@ -20,7 +20,6 @@ export function Explorer({ projects }: { projects: Project[] }) {
   const [rotationChoice, setRotationChoice] = useState<boolean | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
-  const anchorRef = useRef<HTMLParagraphElement>(null);
 
   const autoRotate = rotationChoice ?? !reducedMotion;
   const index = Math.max(0, projects.findIndex((project) => project.id === selectedId));
@@ -80,7 +79,6 @@ export function Explorer({ projects }: { projects: Project[] }) {
           autoRotate={autoRotate}
           reducedMotion={reducedMotion}
           frameRef={frameRef}
-          leaderAnchorRef={anchorRef}
           onSelectGroup={selectGroup}
         />
       </div>
@@ -92,7 +90,7 @@ export function Explorer({ projects }: { projects: Project[] }) {
           <div className="explorer__motion">
             <RotationToggle rotating={autoRotate} onToggle={() => setRotationChoice(!autoRotate)} />
             <p className="explorer__hint">
-              <span className="explorer__hint-pointer">Drag to turn the globe, or pick a point to open its project.</span>
+              <span className="explorer__hint-pointer">Drag to turn the globe.</span>
               <span className="explorer__hint-touch">Swipe sideways to turn the globe.</span>
             </p>
           </div>
@@ -110,7 +108,6 @@ export function Explorer({ projects }: { projects: Project[] }) {
           <ProjectPanel
             project={project}
             group={group}
-            anchorRef={anchorRef}
             onSelectProject={setSelectedId}
             onOpenDetails={() => setDetailsOpen(true)}
           />

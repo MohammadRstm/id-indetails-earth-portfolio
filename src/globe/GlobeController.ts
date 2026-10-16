@@ -5,12 +5,20 @@ const DEG = Math.PI / 180;
 const SPIN_SPEED = 0.045;
 /** Seconds the spin takes to ease back up to full speed. */
 const SPIN_RAMP_SECONDS = 2.5;
-const HOLD_AFTER_FOCUS_SECONDS = 7;
+const HOLD_AFTER_FOCUS_SECONDS = 10;
 const HOLD_AFTER_DRAG_SECONDS = 3.5;
 const FOCUS_SMOOTH_TIME = 0.55;
 const INERTIA_DECAY = 3.2;
 const MAX_DRAG_VELOCITY = 6;
 export const PITCH_LIMIT = 60 * DEG;
+
+const ZOOM_SMOOTH_TIME = 0.8;
+/** While a focus turn has more than this left to travel, the camera stays pulled back. */
+const ZOOM_OUT_DISTANCE = 0.45;
+/** Angle, in radians, between the screen centre and the focused place once fully zoomed in. */
+export const ZOOM_PITCH_BIAS = 0.47;
+/** How much a drag turns the globe less when fully zoomed in (the surface is larger on screen). */
+const ZOOM_DRAG_DAMPING = 0.65;
 
 interface DampResult {
   value: number;
@@ -30,6 +38,7 @@ export function smoothDamp(current: number, target: number, velocity: number, sm
   };
 }
 
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const clampPitch = (pitch: number) => Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch));
 const easeInOutSine = (t: number) => 0.5 - Math.cos(Math.PI * t) / 2;
 
@@ -65,6 +74,11 @@ export class GlobeController {
   private hoverHold = false;
   private spinRamp = 0;
   private focusHold = HOLD_AFTER_FOCUS_SECONDS;
+  private zoomValue = 0;
+  private zoomVelocity = 0;
+  private zoomTarget = 0;
+  /** Extra tilt, in radians, that puts the focused place at ZOOM_PITCH_BIAS from the screen centre when zoomed in. */
+  private zoomTilt = ZOOM_PITCH_BIAS;
   private wake: () => void = () => {};
 
   constructor(initial: Orientation, options: GlobeControllerOptions) {
@@ -85,6 +99,21 @@ export class GlobeController {
 
   get isTransitioning(): boolean {
     return this.target !== null;
+  }
+
+  /** 0 shows the whole globe, 1 is the close-up of the focused place. */
+  get zoom(): number {
+    return this.zoomValue;
+  }
+
+  /** Radians the globe is tipped back by right now, so the focused place rises towards the top limb. */
+  get tilt(): number {
+    return this.zoomValue * this.zoomTilt;
+  }
+
+  /** Multiplier for drag distance: the surface is magnified when zoomed in. */
+  get dragScale(): number {
+    return 1 - ZOOM_DRAG_DAMPING * this.zoomValue;
   }
 
   setAutoRotate(enabled: boolean): void {
@@ -116,6 +145,8 @@ export class GlobeController {
   focus(lat: number, lng: number, now: number, options: FocusOptions = {}): void {
     const goal = orientationFor(lat, lng);
     const yaw = this.yaw + wrapAngle(goal.yaw - this.yaw);
+    // orientationFor leaves high latitudes partly tilted, so the tilt makes up the difference.
+    this.zoomTilt = ZOOM_PITCH_BIAS - (lat * DEG - goal.pitch);
     this.spinRamp = 0;
     this.dragging = false;
     this.focusHold = options.holdSeconds ?? HOLD_AFTER_FOCUS_SECONDS;
@@ -126,6 +157,9 @@ export class GlobeController {
       this.pitchVelocity = 0;
       this.target = null;
       this.holdUntil = now + this.focusHold;
+      this.zoomValue = 1;
+      this.zoomVelocity = 0;
+      this.zoomTarget = 1;
     } else {
       this.target = { yaw, pitch: goal.pitch };
     }
@@ -167,8 +201,37 @@ export class GlobeController {
     this.wake();
   }
 
-  /** Advances the orientation. Returns true while further frames are needed. */
+  /** Advances the orientation and zoom. Returns true while further frames are needed. */
   update(dt: number, now: number): boolean {
+    const turning = this.advanceOrientation(dt, now);
+    this.updateZoomTarget(now);
+    const zooming = this.advanceZoom(dt);
+    return turning || zooming;
+  }
+
+  private updateZoomTarget(now: number): void {
+    if (this.target) {
+      const remaining = Math.hypot(this.target.yaw - this.yaw, this.target.pitch - this.pitch);
+      this.zoomTarget = remaining > ZOOM_OUT_DISTANCE ? 0 : 1;
+    } else if (this.autoRotate && !this.dragging && !this.hoverHold && now >= this.holdUntil) {
+      // The spin has resumed. With rotation off the zoom stays where it was.
+      this.zoomTarget = 0;
+    }
+  }
+
+  private advanceZoom(dt: number): boolean {
+    const next = smoothDamp(this.zoomValue, this.zoomTarget, this.zoomVelocity, ZOOM_SMOOTH_TIME, dt);
+    this.zoomValue = clamp01(next.value);
+    this.zoomVelocity = this.zoomValue === next.value ? next.velocity : 0;
+    if (Math.abs(this.zoomTarget - this.zoomValue) < 2e-3 && Math.abs(this.zoomVelocity) < 2e-3) {
+      this.zoomValue = this.zoomTarget;
+      this.zoomVelocity = 0;
+      return false;
+    }
+    return true;
+  }
+
+  private advanceOrientation(dt: number, now: number): boolean {
     if (this.dragging) return true;
     let active = false;
 

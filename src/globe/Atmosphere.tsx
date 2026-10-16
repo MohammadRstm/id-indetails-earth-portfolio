@@ -1,9 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { AdditiveBlending, BackSide, ShaderMaterial } from 'three';
+import { AddEquation, BackSide, CustomBlending, OneFactor, ShaderMaterial, ZeroFactor } from 'three';
 import type { SceneUniforms } from './sceneUniforms';
 import { atmosphereFragmentShader, atmosphereVertexShader } from './shaders';
 
-const SHELL_RADIUS = 1.17;
+/** Shell radius for the whole-globe view and for the close-up. */
+const SHELL_RADIUS_FAR = 1.17;
+const SHELL_RADIUS_NEAR = 1.055;
 
 export function Atmosphere({ uniforms }: { uniforms: SceneUniforms }) {
   const material = useMemo(
@@ -12,15 +14,22 @@ export function Atmosphere({ uniforms }: { uniforms: SceneUniforms }) {
         vertexShader: atmosphereVertexShader,
         fragmentShader: atmosphereFragmentShader,
         side: BackSide,
-        blending: AdditiveBlending,
+        // Adds colour but leaves the canvas alpha alone, so no dark ring appears over the page background.
+        blending: CustomBlending,
+        blendEquation: AddEquation,
+        blendSrc: OneFactor,
+        blendDst: OneFactor,
+        blendSrcAlpha: ZeroFactor,
+        blendDstAlpha: OneFactor,
         transparent: true,
         depthWrite: false,
         uniforms: {
           uColor: uniforms.uAtmosphere,
           uSunDir: uniforms.uSunDir,
           uReveal: uniforms.uReveal,
-          // Value of -dot(N, V) where the shell's back face meets the Earth's limb.
-          uEdge: { value: Math.sqrt(1 - 1 / (SHELL_RADIUS * SHELL_RADIUS)) },
+          uZoom: uniforms.uZoom,
+          uRadiusFar: { value: SHELL_RADIUS_FAR },
+          uRadiusNear: { value: SHELL_RADIUS_NEAR },
         },
       }),
     [uniforms],
@@ -29,7 +38,8 @@ export function Atmosphere({ uniforms }: { uniforms: SceneUniforms }) {
   useEffect(() => () => material.dispose(), [material]);
 
   return (
-    <mesh material={material} scale={SHELL_RADIUS} renderOrder={2}>
+    // The vertex shader sets the shell's radius, so the unit-sphere bounds would cull it wrongly.
+    <mesh material={material} frustumCulled={false} renderOrder={2}>
       <sphereGeometry args={[1, 96, 64]} />
     </mesh>
   );

@@ -1,6 +1,6 @@
 # ID-Indetails project globe
 
-A cinematic 3D Earth portfolio for ID-Indetails, a software engineering company. A rotating globe carries a marker for every project; picking a marker (or stepping through the projects) turns the globe to that place and shows the project beside it. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, clouds, atmosphere and stars.
+A cinematic 3D Earth portfolio for ID-Indetails, a software engineering company. A rotating globe carries a marker for every project; picking a marker (or stepping through the projects) turns the globe to that place and shows the project beside it. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, atmosphere, markers, routes and stars.
 
 All projects shown are fictional demonstrations, and the About copy is placeholder text for the company to replace.
 
@@ -32,7 +32,7 @@ Press `Ctrl+C` in the terminal to stop the dev server.
 - A day/night terminator with a camera-relative sun would need a second per-frame loop next to its internal tween and render loop.
 - It pulls in `globe.gl`, `three-globe`, `kapsule`, `tween.js` and `three-render-objects`.
 
-Instead the site uses React Three Fiber with custom `ShaderMaterial`s and `frameloop="demand"`. A single `useFrame` driver advances the globe and asks for another frame only while something is moving, so with the rotation paused and nothing moving, the page renders nothing. The markers are DOM buttons projected from the rotating globe once per rendered frame, which keeps them crisp and lets plain CSS style them.
+Instead the site uses React Three Fiber with custom `ShaderMaterial`s and `frameloop="demand"`. A single `useFrame` driver advances the globe and asks for another frame only while something is moving, so with the rotation paused and nothing moving, the page renders nothing. The glowing markers and route arcs are drawn in the scene; the DOM buttons on top of them are projected from the rotating globe once per rendered frame and carry the click targets and the place names.
 
 ## Architecture
 
@@ -55,9 +55,11 @@ src/
 **`src/globe`**
 
 - `GlobeStage.tsx` is the DOM side: pointer drag, measuring the layout frame the globe is centred in, the markers, the loading indicator and the notices.
-- `GlobeScene.tsx` holds the scene graph and `GlobeDriver`, the single on-demand render loop. It frames the camera, advances the controller, rotates the globe, eases the reveal-in and calls the marker projector.
-- `GlobeController.ts` owns the orientation logic: automatic spin, drag with inertia, smooth focus transitions and the holds in between. It takes time as an argument and has no React or three.js dependency.
-- `MarkerProjector.ts` projects markers onto the screen each frame, fades out those past the horizon and draws the leader line from the active marker to the project panel.
+- `GlobeScene.tsx` holds the scene graph and `GlobeDriver`, the single on-demand render loop. It frames the camera (`framing.ts`), advances the controller, rotates and tips the globe, eases the reveal-in and calls the marker projector.
+- `framing.ts` places the camera. At zoom 0 the whole globe fills the layout cell; at zoom 1 the camera moves in and a lens shift puts the selected place about 57% down the cell, with the horizon curving across the top.
+- `MarkerBeacons.tsx` draws a glowing dot and ring on the surface for each place. The selected one also gets a second ring, an expanding pulse and a short beam of light. `Routes.tsx` draws dashed great-circle arcs along a minimum spanning tree of the places (`minimumSpanningTree` in `lib/geo.ts`); arcs touching the selected place are bright and flow away from it. Both depth-test against the Earth, and their pulse and flow run only while rotation is on and reduced motion is off (`effectUniforms.ts`).
+- `GlobeController.ts` owns the orientation logic: automatic spin, drag with inertia, smooth focus transitions, the holds in between and the zoom (0 overview, 1 close-up). The zoom stays out while a focus turn has more than about 0.45 rad to go, is 1 during the hold after a focus, and returns to 0 when the spin resumes; with rotation off it stays where it was. It takes time as an argument and has no React or three.js dependency.
+- `MarkerProjector.ts` projects the marker buttons onto the screen each frame, fades out those past the horizon and flags the stage while zoomed in so every visible place shows its name.
 - `shaders.ts` contains the GLSL; `sceneUniforms.ts` holds the uniforms shared by every globe material (sun direction, atmosphere colour, reveal).
 - `Earth.tsx`, `FallbackEarth.tsx`, `Atmosphere.tsx` and `Starfield.tsx` are the scene objects.
 - `useEarthTextures.ts` loads the Earth maps outside React Suspense so progress and failure can be shown in the page, and disposes them on unmount.
@@ -67,12 +69,12 @@ src/
 
 ## Behaviour
 
-- The featured project is selected on load, with an opening turn onto it.
+- The featured project is selected on load. The whole globe shows first, then it turns onto the project and the camera moves in close. Moving to another project eases out, turns and moves back in; the camera moves back out when the spin resumes (about ten seconds after a selection) and stays in while rotation is paused.
 - The globe spins slowly. The spin pauses for a few seconds after a selection or a drag, then eases back in, and stops while the pointer rests on a marker. A button pauses and resumes it.
 - Projects can be stepped with the previous and next buttons or the Left and Right arrow keys. The location list is the keyboard and screen-reader route to every project: the globe markers are pointer-only (`aria-hidden`, `tabIndex={-1}`).
 - Projects that share a city share one marker. Singapore has two; selecting that place again moves to its next project.
 - Markers past the horizon fade out and leave the accessibility tree.
-- With `prefers-reduced-motion`, auto-rotation is off by default, focus jumps instantly, drag has no inertia, the clouds do not drift and the marker pulse is removed. Pressing the rotation button overrides the preference.
+- With `prefers-reduced-motion`, auto-rotation is off by default, focus jumps instantly, drag has no inertia, the camera jumps in without animating and the marker pulse and route flow are removed. Pressing the rotation button overrides the preference.
 - Without WebGL 2 the globe is replaced by a notice and the project list and panel keep working. If the Earth textures fail to load, a procedural graticule globe is shown with a notice.
 - Dragging turns the globe. Touch drags only turn it sideways (the canvas allows vertical panning), so the page can still scroll past it.
 
@@ -84,9 +86,8 @@ Earth textures in `public/textures` were downloaded from NASA Earth Observatory 
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `earth-day-4k.jpg`, `earth-day-2k.jpg`    | Blue Marble Next Generation, `world.topo.bathy.200412` (5400x2700)                                                      |
 | `earth-lights-4k.jpg`                     | Black Marble 2016, `BlackMarble_2016_01deg.jpg` (3600x1800), warm artificial light extracted and bluish terrain removed |
-| `earth-clouds-2k.jpg`                     | `cloud_combined_2048.jpg`                                                                                              |
-| `earth-water-2k.jpg`                      | GEBCO bathymetry, `gebco_08_rev_bath_5400x2700.jpg`, used as a land/water mask                                          |
-| `earth-relief-2k.jpg`                     | GEBCO topography, `gebco_08_rev_elev_5400x2700.jpg`                                                                    |
+| `earth-water-4k.jpg`, `earth-water-2k.jpg`  | GEBCO bathymetry, `gebco_08_rev_bath_21600x10800.jpg`, thresholded at full resolution, united with blue pixels from Blue Marble so shallow seas (Azov, North Sea) count as water |
+| `earth-normal-4k.jpg`, `earth-normal-2k.jpg` | GEBCO topography, `gebco_08_rev_elev_21600x10800.jpg`, turned into a tangent-space normal map (R east, G north) with exaggerated slopes |
 
 NASA imagery is in the public domain (credit: NASA Earth Observatory; Blue Marble by Reto Stöckli). The GEBCO-derived maps come from NASA's Blue Marble collection and are credited to GEBCO.
 

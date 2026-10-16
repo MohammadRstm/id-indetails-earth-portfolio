@@ -1,16 +1,18 @@
-import { useEffect, useMemo, type RefObject } from 'react';
-import { ShaderMaterial, Vector2, type Mesh } from 'three';
+import { useEffect, useMemo } from 'react';
+import { ShaderMaterial } from 'three';
 import type { SceneUniforms } from './sceneUniforms';
-import { cloudsFragmentShader, cloudsVertexShader, earthFragmentShader, earthVertexShader } from './shaders';
+import { earthFragmentShader, earthVertexShader } from './shaders';
 import type { EarthTextures } from './useEarthTextures';
+
+/** Scales the normal map's slopes; higher reads as more dramatic relief. */
+const NORMAL_STRENGTH = 2.2;
 
 interface EarthProps {
   textures: EarthTextures;
   uniforms: SceneUniforms;
-  cloudsRef: RefObject<Mesh | null>;
 }
 
-export function Earth({ textures, uniforms, cloudsRef }: EarthProps) {
+export function Earth({ textures, uniforms }: EarthProps) {
   const surface = useMemo(
     () =>
       new ShaderMaterial({
@@ -20,8 +22,8 @@ export function Earth({ textures, uniforms, cloudsRef }: EarthProps) {
           uDay: { value: textures.day },
           uLights: { value: textures.lights },
           uWater: { value: textures.water },
-          uRelief: { value: textures.relief },
-          uReliefTexel: { value: new Vector2(1 / 2048, 1 / 1024) },
+          uNormal: { value: textures.normal },
+          uNormalStrength: { value: NORMAL_STRENGTH },
           uSunDir: uniforms.uSunDir,
           uAtmosphere: uniforms.uAtmosphere,
           uReveal: uniforms.uReveal,
@@ -30,39 +32,11 @@ export function Earth({ textures, uniforms, cloudsRef }: EarthProps) {
     [textures, uniforms],
   );
 
-  const clouds = useMemo(
-    () =>
-      new ShaderMaterial({
-        vertexShader: cloudsVertexShader,
-        fragmentShader: cloudsFragmentShader,
-        transparent: true,
-        depthWrite: false,
-        uniforms: {
-          uClouds: { value: textures.clouds },
-          uOpacity: { value: 0.62 },
-          uSunDir: uniforms.uSunDir,
-          uReveal: uniforms.uReveal,
-        },
-      }),
-    [textures, uniforms],
-  );
-
-  useEffect(
-    () => () => {
-      surface.dispose();
-      clouds.dispose();
-    },
-    [surface, clouds],
-  );
+  useEffect(() => () => surface.dispose(), [surface]);
 
   return (
-    <>
-      <mesh material={surface}>
-        <sphereGeometry args={[1, 192, 128]} />
-      </mesh>
-      <mesh ref={cloudsRef} material={clouds} scale={1.006} renderOrder={1}>
-        <sphereGeometry args={[1, 128, 96]} />
-      </mesh>
-    </>
+    <mesh material={surface}>
+      <sphereGeometry args={[1, 192, 128]} />
+    </mesh>
   );
 }

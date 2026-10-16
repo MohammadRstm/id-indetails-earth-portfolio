@@ -236,6 +236,13 @@ img {
   display: none;
 }
 
+/* Below this width the place list needs the room more than the hint does. */
+@media (min-width: 960px) and (max-width: 1299px) {
+  .explorer__hint {
+    display: none;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .explorer__hint-pointer {
     display: none;
@@ -392,6 +399,53 @@ img {
 
 .navigator__places ul::-webkit-scrollbar {
   display: none;
+}
+
+/* Soft edges that appear only when the list scrolls, and only on the side that has more to show. */
+@property --places-fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --places-fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes places-fade {
+  0% {
+    --places-fade-start: 0px;
+    --places-fade-end: 32px;
+  }
+
+  6% {
+    --places-fade-start: 32px;
+  }
+
+  94% {
+    --places-fade-end: 32px;
+  }
+
+  100% {
+    --places-fade-start: 32px;
+    --places-fade-end: 0px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .navigator__places ul {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--places-fade-start),
+      #000 calc(100% - var(--places-fade-end)),
+      transparent 100%
+    );
+    animation: places-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
 }
 
 .place {

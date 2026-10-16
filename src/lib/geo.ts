@@ -82,3 +82,39 @@ export function groupByLocation(projects: Project[]): LocationGroup[] {
   }
   return groups;
 }
+
+/** Angle in radians between two places, along the great circle through them. */
+export function greatCircleAngle(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const p = latLngToVector(a.lat, a.lng);
+  const q = latLngToVector(b.lat, b.lng);
+  const cross = Math.hypot(p.y * q.z - p.z * q.y, p.z * q.x - p.x * q.z, p.x * q.y - p.y * q.x);
+  return Math.atan2(cross, p.x * q.x + p.y * q.y + p.z * q.z);
+}
+
+export interface RouteEdge {
+  from: string;
+  to: string;
+  /** Great-circle angle between the two places, radians. */
+  angle: number;
+}
+
+/** Connects every place with the shortest total great-circle distance (Prim's algorithm), with no loops. */
+export function minimumSpanningTree(places: Pick<LocationGroup, 'id' | 'lat' | 'lng'>[]): RouteEdge[] {
+  if (places.length < 2) return [];
+  const edges: RouteEdge[] = [];
+  const joined = new Set([0]);
+  while (joined.size < places.length) {
+    let best: { i: number; j: number; angle: number } | null = null;
+    for (const i of joined) {
+      for (let j = 0; j < places.length; j++) {
+        if (joined.has(j)) continue;
+        const angle = greatCircleAngle(places[i], places[j]);
+        if (!best || angle < best.angle) best = { i, j, angle };
+      }
+    }
+    if (!best) break;
+    joined.add(best.j);
+    edges.push({ from: places[best.i].id, to: places[best.j].id, angle: best.angle });
+  }
+  return edges;
+}

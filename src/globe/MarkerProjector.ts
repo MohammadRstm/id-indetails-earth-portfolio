@@ -1,19 +1,15 @@
 import { Vector3, type Camera, type Object3D } from 'three';
 import { latLngToVector } from '../lib/geo';
 
-/** Markers float just above the surface so they never dip under the cloud layer. */
-const MARKER_ALTITUDE = 1.012;
+/** Matches the beacons' resting height above the surface. */
+const MARKER_ALTITUDE = 1.003;
+/** Beyond this zoom every visible place shows its name, not just the selected one and the hovered one. */
+const LABELS_ZOOM = 0.6;
 
 interface MarkerEntry {
   local: Vector3;
   element: HTMLElement | null;
   visible: boolean;
-}
-
-interface LeaderLine {
-  container: HTMLElement | null;
-  path: SVGPathElement | null;
-  anchor: HTMLElement | null;
 }
 
 const smoothstep = (edge0: number, edge1: number, x: number) => {
@@ -28,8 +24,8 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
  */
 export class MarkerProjector {
   private entries = new Map<string, MarkerEntry>();
-  private activeId: string | null = null;
-  private leader: LeaderLine = { container: null, path: null, anchor: null };
+  private stage: HTMLElement | null = null;
+  private labelsOpen = false;
   private world = new Vector3();
   private toCamera = new Vector3();
   private normal = new Vector3();
@@ -43,19 +39,22 @@ export class MarkerProjector {
     this.entries.delete(id);
   }
 
-  setActive(id: string | null): void {
-    this.activeId = id;
+  /** The element that receives `data-zoomed` while the close-up is showing. */
+  setStage(stage: HTMLElement | null): void {
+    this.stage = stage;
+    this.labelsOpen = false;
   }
 
-  setLeaderLine(container: HTMLElement | null, path: SVGPathElement | null, anchor: HTMLElement | null): void {
-    this.leader = { container, path, anchor };
-  }
-
-  update(camera: Camera, globe: Object3D, width: number, height: number): void {
+  update(camera: Camera, globe: Object3D, width: number, height: number, zoom: number): void {
     globe.updateWorldMatrix(true, false);
-    let activePoint: { x: number; y: number; opacity: number } | null = null;
 
-    for (const [id, entry] of this.entries) {
+    const labelsOpen = zoom > LABELS_ZOOM;
+    if (labelsOpen !== this.labelsOpen && this.stage) {
+      this.labelsOpen = labelsOpen;
+      this.stage.dataset.zoomed = String(labelsOpen);
+    }
+
+    for (const entry of this.entries.values()) {
       const { element } = entry;
       if (!element) continue;
       this.world.copy(entry.local).applyMatrix4(globe.matrixWorld);
@@ -75,29 +74,6 @@ export class MarkerProjector {
         entry.visible = visible;
         element.dataset.visible = String(visible);
       }
-      if (id === this.activeId) activePoint = { x, y, opacity };
     }
-
-    this.updateLeader(activePoint);
-  }
-
-  private updateLeader(point: { x: number; y: number; opacity: number } | null): void {
-    const { container, path, anchor } = this.leader;
-    if (!path) return;
-    if (!container || !anchor || !point || point.opacity <= 0 || anchor.offsetParent === null) {
-      path.style.opacity = '0';
-      return;
-    }
-    const box = container.getBoundingClientRect();
-    const target = anchor.getBoundingClientRect();
-    const ax = target.left - box.left - 14;
-    const ay = target.top - box.top + target.height / 2;
-    if (ax - point.x < 60) {
-      path.style.opacity = '0';
-      return;
-    }
-    const elbowX = ax - 34;
-    path.setAttribute('d', `M${point.x.toFixed(1)} ${point.y.toFixed(1)} L${elbowX.toFixed(1)} ${ay.toFixed(1)} L${ax.toFixed(1)} ${ay.toFixed(1)}`);
-    path.style.opacity = (point.opacity * 0.9).toFixed(3);
   }
 }

@@ -2,7 +2,16 @@ import { Euler, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { demoProjects } from '../data/demoProjects';
 import type { Project } from '../data/project';
-import { formatCoordinates, groupByLocation, latLngToVector, MAX_FOCUS_PITCH, orientationFor, wrapAngle } from './geo';
+import {
+  formatCoordinates,
+  greatCircleAngle,
+  groupByLocation,
+  latLngToVector,
+  MAX_FOCUS_PITCH,
+  minimumSpanningTree,
+  orientationFor,
+  wrapAngle,
+} from './geo';
 
 const DEG = Math.PI / 180;
 
@@ -181,5 +190,62 @@ describe('formatCoordinates', () => {
 
   it('treats zero as north and east', () => {
     expect(formatCoordinates(0, 0)).toBe('0.00° N, 0.00° E');
+  });
+});
+
+describe('greatCircleAngle', () => {
+  it('is zero for the same place and PI for opposite places', () => {
+    expect(greatCircleAngle({ lat: 10, lng: 20 }, { lat: 10, lng: 20 })).toBeCloseTo(0);
+    expect(greatCircleAngle({ lat: 10, lng: 20 }, { lat: -10, lng: -160 })).toBeCloseTo(Math.PI);
+  });
+
+  it('measures a quarter turn along the equator and from the equator to a pole', () => {
+    expect(greatCircleAngle({ lat: 0, lng: 0 }, { lat: 0, lng: 90 })).toBeCloseTo(Math.PI / 2);
+    expect(greatCircleAngle({ lat: 0, lng: 33 }, { lat: 90, lng: 0 })).toBeCloseTo(Math.PI / 2);
+  });
+
+  it('goes the short way across the antimeridian', () => {
+    expect(greatCircleAngle({ lat: 0, lng: 179 }, { lat: 0, lng: -179 })).toBeCloseTo(2 * DEG);
+  });
+});
+
+describe('minimumSpanningTree', () => {
+  const place = (id: string, lat: number, lng: number) => ({ id, lat, lng });
+
+  it('has nothing to connect for fewer than two places', () => {
+    expect(minimumSpanningTree([])).toEqual([]);
+    expect(minimumSpanningTree([place('a', 0, 0)])).toEqual([]);
+  });
+
+  it('links every place with one fewer edge than places', () => {
+    const places = [place('a', 0, 0), place('b', 0, 10), place('c', 0, 50), place('d', 40, 50)];
+    expect(minimumSpanningTree(places)).toHaveLength(3);
+  });
+
+  it('picks the short edges along a line rather than the long ones', () => {
+    const edges = minimumSpanningTree([place('a', 0, 0), place('b', 0, 10), place('c', 0, 30)]);
+    const pairs = edges.map((edge) => [edge.from, edge.to].sort().join('-')).sort();
+    expect(pairs).toEqual(['a-b', 'b-c']);
+    expect(edges.reduce((sum, edge) => sum + edge.angle, 0)).toBeCloseTo(30 * DEG);
+  });
+
+  it('reaches every place exactly once', () => {
+    const places = demoProjects.map((item, index) => place(`p${index}`, item.location.lat, item.location.lng));
+    const edges = minimumSpanningTree(places);
+    expect(edges).toHaveLength(places.length - 1);
+    const reached = new Set(['p0']);
+    // Edges come out in the order the tree grew, so each one attaches to a place already reached.
+    for (const edge of edges) {
+      expect(reached.has(edge.from)).toBe(true);
+      expect(reached.has(edge.to)).toBe(false);
+      reached.add(edge.to);
+    }
+    expect(reached.size).toBe(places.length);
+  });
+
+  it('joins places across the antimeridian directly', () => {
+    const edges = minimumSpanningTree([place('east', 0, 179), place('west', 0, -179), place('middle', 0, 90)]);
+    const direct = edges.find((edge) => [edge.from, edge.to].sort().join('-') === 'east-west');
+    expect(direct?.angle).toBeCloseTo(2 * DEG);
   });
 });

@@ -65,6 +65,7 @@ export function Starfield() {
         transparent: true,
         depthWrite: false,
         blending: AdditiveBlending,
+        premultipliedAlpha: true,
       }),
     [dpr],
   );
