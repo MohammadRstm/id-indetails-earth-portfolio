@@ -1,40 +1,53 @@
 import { useEffect, useMemo } from 'react';
-import { ShaderMaterial } from 'three';
+import { BackSide, FrontSide, ShaderMaterial, SphereGeometry, type Side } from 'three';
 import type { SceneUniforms } from './sceneUniforms';
 import { earthFragmentShader, earthVertexShader } from './shaders';
 import type { EarthTextures } from './useEarthTextures';
-
-/** Scales the normal map's slopes; higher reads as more dramatic relief. */
-const NORMAL_STRENGTH = 2.2;
 
 interface EarthProps {
   textures: EarthTextures;
   uniforms: SceneUniforms;
 }
 
+/**
+ * Two passes over one sphere: the inside (far hemisphere) first, faintly, then
+ * the outside. The near side writes depth so markers and routes behind the
+ * planet stay hidden even though its oceans are see-through.
+ */
 export function Earth({ textures, uniforms }: EarthProps) {
-  const surface = useMemo(
-    () =>
+  const geometry = useMemo(() => new SphereGeometry(1, 192, 128), []);
+  const [far, near] = useMemo(() => {
+    const pass = (side: Side, farSide: boolean) =>
       new ShaderMaterial({
         vertexShader: earthVertexShader,
         fragmentShader: earthFragmentShader,
+        side,
+        transparent: true,
+        premultipliedAlpha: true,
+        depthWrite: !farSide,
         uniforms: {
-          uDay: { value: textures.day },
           uWater: { value: textures.water },
-          uNormal: { value: textures.normal },
-          uNormalStrength: { value: NORMAL_STRENGTH },
+          uFarSide: { value: farSide ? 1 : 0 },
           uSunDir: uniforms.uSunDir,
           uReveal: uniforms.uReveal,
         },
-      }),
-    [textures, uniforms],
+      });
+    return [pass(BackSide, true), pass(FrontSide, false)];
+  }, [textures, uniforms]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(
+    () => () => {
+      far.dispose();
+      near.dispose();
+    },
+    [far, near],
   );
 
-  useEffect(() => () => surface.dispose(), [surface]);
-
   return (
-    <mesh material={surface}>
-      <sphereGeometry args={[1, 192, 128]} />
-    </mesh>
+    <>
+      <mesh geometry={geometry} material={far} renderOrder={0} />
+      <mesh geometry={geometry} material={near} renderOrder={1} />
+    </>
   );
 }

@@ -16,13 +16,26 @@ import {
 const DEG = Math.PI / 180;
 
 function project(id: string, lat: number, lng: number): Project {
+  const image = { src: `/projects/${id}.jpg`, alt: id };
   return {
     id,
     title: id,
+    type: 'villa',
+    status: 'completed',
     location: { city: id, country: 'Testland', lat, lng },
-    status: 'live',
-    category: 'Test',
-    description: 'Test project',
+    year: 2024,
+    client: 'Test client',
+    areaSqm: 100,
+    services: [],
+    summary: 'Test project',
+    brief: '',
+    concept: '',
+    materials: [],
+    sustainability: [],
+    thumbnail: image.src,
+    hero: image,
+    gallery: [],
+    team: [],
   };
 }
 
@@ -142,18 +155,10 @@ describe('wrapAngle', () => {
 });
 
 describe('groupByLocation', () => {
-  it('groups the two Singapore demo projects and keeps every other project separate', () => {
+  it('gives every demo project its own place', () => {
     const groups = groupByLocation(demoProjects);
-    expect(groups).toHaveLength(demoProjects.length - 1);
-
-    const singapore = groups.filter((group) => group.city === 'Singapore');
-    expect(singapore).toHaveLength(1);
-    expect(singapore[0].projects.map((p) => p.id)).toEqual(['straits-telemetry', 'concourse']);
-
-    for (const group of groups.filter((g) => g.city !== 'Singapore')) {
-      expect(group.projects, group.city).toHaveLength(1);
-    }
-    expect(groups.flatMap((group) => group.projects)).toHaveLength(demoProjects.length);
+    expect(groups).toHaveLength(demoProjects.length);
+    for (const group of groups) expect(group.projects, group.city).toHaveLength(1);
   });
 
   it('names a group after its first project', () => {

@@ -9,7 +9,7 @@ export const AXIAL_ROLL = -0.13;
 const CLOSE_RADIUS_DESKTOP = 1.4;
 const CLOSE_RADIUS_NARROW = 1.15;
 const NARROW_FRAME_WIDTH = 600;
-const PLACE_DOWN_FRACTION = 0.575;
+const PLACE_DOWN_FRACTION = 0.47;
 
 /** Camera distance at which a unit sphere has a projected radius of `radiusPx`. */
 const distanceForRadius = (focalPx: number, radiusPx: number) => Math.hypot(1, focalPx / radiusPx);

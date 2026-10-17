@@ -1,75 +1,55 @@
 import { useEffect, useState } from 'react';
-import { LoadingManager, RedFormat, SRGBColorSpace, TextureLoader, type Texture } from 'three';
+import { RedFormat, RepeatWrapping, TextureLoader, type Texture } from 'three';
 
 export interface EarthTextures {
-  day: Texture;
-  normal: Texture;
+  /** Land/sea mask: 1 over water, 0 over land. */
   water: Texture;
 }
 
-export type EarthTextureState =
-  | { status: 'loading'; loaded: number; total: number }
-  | { status: 'ready'; textures: EarthTextures }
-  | { status: 'error' };
+export type EarthTextureState = { status: 'loading' } | { status: 'ready'; textures: EarthTextures } | { status: 'error' };
 
 const TEXTURE_ROOT = '/textures';
 
-/** The 4K day, normal and water maps are used only where the GPU and screen can make use of them. */
-function prefersHighResolution(): boolean {
+/** The dot grid only samples the mask once per dot, so the 2K map is plenty on most screens. */
+function waterMaskUrl(): string {
   const longestScreenEdge = Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1);
-  return longestScreenEdge >= 1600;
+  return `${TEXTURE_ROOT}/earth-water-${longestScreenEdge >= 2400 ? '4k' : '2k'}.jpg`;
 }
-
-function textureUrls(): Record<keyof EarthTextures, string> {
-  const size = prefersHighResolution() ? '4k' : '2k';
-  return {
-    day: `${TEXTURE_ROOT}/earth-day-${size}.jpg`,
-    normal: `${TEXTURE_ROOT}/earth-normal-${size}.jpg`,
-    water: `${TEXTURE_ROOT}/earth-water-${size}.jpg`,
-  };
-}
-
-const TEXTURE_COUNT = 3;
 
 /**
- * Loads the Earth maps outside React Suspense so progress and failure can be
- * shown in the page. Textures are disposed when the globe unmounts.
+ * Loads the land/sea mask outside React Suspense so failure can be shown in
+ * the page. The texture is disposed when the globe unmounts.
  */
 export function useEarthTextures(enabled: boolean): EarthTextureState {
-  const [state, setState] = useState<EarthTextureState>({ status: 'loading', loaded: 0, total: TEXTURE_COUNT });
+  const [state, setState] = useState<EarthTextureState>({ status: 'loading' });
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    const loaded: Texture[] = [];
-    const manager = new LoadingManager();
-    manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
-      if (!cancelled) setState({ status: 'loading', loaded: itemsLoaded, total: itemsTotal });
-    };
-    const loader = new TextureLoader(manager);
-    const urls = textureUrls();
-    const load = (url: string) =>
-      loader.loadAsync(url).then((texture) => {
-        loaded.push(texture);
-        texture.anisotropy = 8;
-        return texture;
-      });
+    let loaded: Texture | null = null;
 
-    Promise.all([load(urls.day), load(urls.normal), load(urls.water)])
-      .then(([day, normal, water]) => {
-        day.colorSpace = SRGBColorSpace;
-        // The water mask only needs one channel on the GPU.
+    new TextureLoader()
+      .loadAsync(waterMaskUrl())
+      .then((water) => {
+        if (cancelled) {
+          water.dispose();
+          return;
+        }
+        loaded = water;
+        // One channel is enough on the GPU; repeating in longitude avoids a seam at the antimeridian.
         water.format = RedFormat;
-        if (!cancelled) setState({ status: 'ready', textures: { day, normal, water } });
+        water.wrapS = RepeatWrapping;
+        water.anisotropy = 4;
+        setState({ status: 'ready', textures: { water } });
       })
       .catch((error: unknown) => {
-        console.warn('Earth textures failed to load; showing the simplified globe.', error);
+        console.warn('Earth texture failed to load; showing the simplified globe.', error);
         if (!cancelled) setState({ status: 'error' });
       });
 
     return () => {
       cancelled = true;
-      loaded.forEach((texture) => texture.dispose());
+      loaded?.dispose();
     };
   }, [enabled]);
 

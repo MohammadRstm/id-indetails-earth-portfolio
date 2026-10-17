@@ -1,42 +1,65 @@
-export type ProjectStatus = 'discovery' | 'in-development' | 'live' | 'completed';
+export type ProjectType = 'villa' | 'residential' | 'hotel';
+
+export type ProjectStatus = 'completed' | 'under-construction' | 'in-design';
 
 export interface ProjectLocation {
   city: string;
   country: string;
   lat: number;
   lng: number;
-  /** IANA time zone, used to show the local time at the location. */
-  timeZone?: string;
+}
+
+export interface ImageCredit {
+  photographer: string;
+  source: 'Unsplash' | 'Pexels';
+  url: string;
 }
 
 export interface ProjectImage {
   src: string;
   alt: string;
+  credit?: ImageCredit;
 }
 
-export interface ProjectDetails {
-  overview: string;
-  scope: string[];
-  stack: string[];
+export interface ProjectCredit {
+  role: string;
+  name: string;
 }
 
 export interface Project {
+  /** URL-safe slug; also the project's address, `/projects/<id>`. */
   id: string;
   title: string;
-  location: ProjectLocation;
+  type: ProjectType;
   status: ProjectStatus;
-  category: string;
-  description: string;
-  /** ISO date, `YYYY-MM` or `YYYY-MM-DD`. */
-  startDate?: string;
-  image?: ProjectImage;
-  featured?: boolean;
-  details?: ProjectDetails;
+  location: ProjectLocation;
+  /** Year of completion, or the expected year while the project is still under way. */
+  year: number;
+  client: string;
+  /** Gross floor area in square metres. */
+  areaSqm: number;
+  services: string[];
+  /** One or two sentences shown beside the project strip. */
+  summary: string;
+  brief: string;
+  concept: string;
+  materials: string[];
+  sustainability: string[];
+  /** Portrait crop used in the project strip. */
+  thumbnail: string;
+  hero: ProjectImage;
+  gallery: ProjectImage[];
+  team: ProjectCredit[];
 }
 
+export const projectTypeLabel: Record<ProjectType, string> = {
+  villa: 'Villa',
+  residential: 'Residential',
+  hotel: 'Hotel',
+};
+
 export const projectStatusLabel: Record<ProjectStatus, string> = {
-  discovery: 'Discovery',
-  'in-development': 'In development',
-  live: 'Live',
   completed: 'Completed',
+  'under-construction': 'Under construction',
+  'in-design': 'In design',
 };

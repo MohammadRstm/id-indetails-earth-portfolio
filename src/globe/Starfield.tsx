@@ -1,24 +1,13 @@
 import { useThree } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMaterial } from 'three';
+import { mulberry32 } from '../lib/random';
 import { starsFragmentShader, starsVertexShader } from './shaders';
 
-const STAR_COUNT = 1600;
+const STAR_COUNT = 1100;
 /** Stars fill a cone behind the globe; the camera never turns, so nothing is wasted. */
 const CONE_HALF_ANGLE = (52 * Math.PI) / 180;
-const STAR_PALETTE = ['#f3f8fc', '#f3f8fc', '#cfeaff', '#a9cfff', '#ffeccf'].map((hex) => new Color(hex));
-
-/** Deterministic generator so the sky looks the same on every visit. */
-function mulberry32(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+const STAR_PALETTE = ['#f2f2f2', '#f2f2f2', '#d9d9d9', '#bfc6d1', '#e8e2d6'].map((hex) => new Color(hex));
 
 function buildStars(): BufferGeometry {
   const random = mulberry32(20261016);

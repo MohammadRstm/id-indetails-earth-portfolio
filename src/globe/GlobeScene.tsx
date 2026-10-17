@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Group, PerspectiveCamera } from 'three';
 import type { LocationGroup } from '../lib/geo';
+import { Dust } from './Dust';
 import { createEffectUniforms, type EffectUniforms } from './effectUniforms';
 import { Earth } from './Earth';
 import { FallbackEarth } from './FallbackEarth';
@@ -24,9 +25,11 @@ export interface GlobeSceneProps {
   projector: MarkerProjector;
   layout: GlobeLayout;
   textures: EarthTextureState;
+  /** Ripples and route flow run only while this is on. */
+  animate: boolean;
 }
 
-export function GlobeScene({ groups, activeGroupId, controller, projector, layout, textures }: GlobeSceneProps) {
+export function GlobeScene({ groups, activeGroupId, controller, projector, layout, textures, animate }: GlobeSceneProps) {
   const [uniforms] = useState(createSceneUniforms);
   const [effects] = useState(createEffectUniforms);
   const globeRef = useRef<Group>(null);
@@ -42,6 +45,7 @@ export function GlobeScene({ groups, activeGroupId, controller, projector, layou
             <>
               <Routes groups={groups} activeGroupId={activeGroupId} uniforms={uniforms} effects={effects} />
               <MarkerBeacons groups={groups} activeGroupId={activeGroupId} uniforms={uniforms} effects={effects} />
+              <Dust />
             </>
           )}
         </group>
@@ -54,6 +58,7 @@ export function GlobeScene({ groups, activeGroupId, controller, projector, layou
         effects={effects}
         globeRef={globeRef}
         revealing={textures.status !== 'loading'}
+        animate={animate}
       />
     </>
   );
@@ -67,13 +72,14 @@ interface GlobeDriverProps {
   effects: EffectUniforms;
   globeRef: RefObject<Group | null>;
   revealing: boolean;
+  animate: boolean;
 }
 
 /**
  * The single per-frame loop. The canvas renders on demand; this keeps
  * requesting frames only while something is actually moving.
  */
-function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRef, revealing }: GlobeDriverProps) {
+function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRef, revealing, animate }: GlobeDriverProps) {
   const invalidate = useThree((state) => state.invalidate);
   const framed = useRef({ version: -1, width: 0, height: 0, zoom: -1 });
   const reveal = useRef(0);
@@ -96,6 +102,8 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRe
     if (revealing) invalidate();
   }, [revealing, invalidate]);
 
+  useEffect(() => invalidate(), [animate, invalidate]);
+
   useFrame((state, delta) => {
     const now = performance.now() / 1000;
     const dt = Math.min(delta, 1 / 20);
@@ -103,18 +111,23 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRe
     const { width, height } = state.size;
     const last = framed.current;
     let active = controller.update(dt, now);
+    if (layout.step(dt)) active = true;
     const { zoom } = controller;
     if (last.version !== layout.version || last.width !== width || last.height !== height || last.zoom !== zoom) {
       frameCamera(camera, layout, zoom, width, height);
+      // The marker projector needs this frame's view matrix, which three would otherwise only update at render time.
+      camera.updateMatrixWorld();
       framed.current = { version: layout.version, width, height, zoom };
     }
 
     const globe = globeRef.current;
     if (globe) globe.rotation.set(controller.pitch - controller.tilt, controller.yaw, 0);
 
-    const animate = controller.autoRotate && !controller.reducedMotion;
     effectUniforms.current.uAnimate.value = animate ? 1 : 0;
-    if (animate) effectUniforms.current.uTime.value += dt;
+    if (animate) {
+      effectUniforms.current.uTime.value += dt;
+      active = true;
+    }
 
     if (revealing && reveal.current < 1) {
       reveal.current = Math.min(1, reveal.current + dt / REVEAL_SECONDS);
@@ -122,7 +135,7 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, globeRe
       active = true;
     }
 
-    if (globe) projector.update(camera, globe, width, height, zoom);
+    if (globe) projector.update(camera, globe, width, height);
     if (active) state.invalidate();
   });
 

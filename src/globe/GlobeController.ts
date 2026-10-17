@@ -77,6 +77,7 @@ export class GlobeController {
   private zoomValue = 0;
   private zoomVelocity = 0;
   private zoomTarget = 0;
+  private closeUp = false;
   /** Extra tilt, in radians, that puts the focused place at ZOOM_PITCH_BIAS from the screen centre when zoomed in. */
   private zoomTilt = ZOOM_PITCH_BIAS;
   private wake: () => void = () => {};
@@ -101,7 +102,7 @@ export class GlobeController {
     return this.target !== null;
   }
 
-  /** 0 shows the whole globe, 1 is the close-up of the focused place. */
+  /** 0 shows the whole globe, 1 is the close-up of the focused place (only while the close-up is on). */
   get zoom(): number {
     return this.zoomValue;
   }
@@ -125,6 +126,19 @@ export class GlobeController {
 
   setReducedMotion(reduced: boolean): void {
     this.reducedMotion = reduced;
+  }
+
+  /**
+   * Switches between the whole globe and the close-up of the focused place.
+   * The camera moves in once the place has turned to face the viewer.
+   */
+  setCloseUp(enabled: boolean): void {
+    this.closeUp = enabled;
+    if (this.reducedMotion) {
+      this.zoomValue = this.zoomTarget = enabled ? 1 : 0;
+      this.zoomVelocity = 0;
+    }
+    this.wake();
   }
 
   /** Slows the spin to a stop while the pointer rests on a marker. */
@@ -157,9 +171,9 @@ export class GlobeController {
       this.pitchVelocity = 0;
       this.target = null;
       this.holdUntil = now + this.focusHold;
-      this.zoomValue = 1;
+      this.zoomValue = this.closeUp ? 1 : 0;
       this.zoomVelocity = 0;
-      this.zoomTarget = 1;
+      this.zoomTarget = this.zoomValue;
     } else {
       this.target = { yaw, pitch: goal.pitch };
     }
@@ -204,18 +218,19 @@ export class GlobeController {
   /** Advances the orientation and zoom. Returns true while further frames are needed. */
   update(dt: number, now: number): boolean {
     const turning = this.advanceOrientation(dt, now);
-    this.updateZoomTarget(now);
+    this.updateZoomTarget();
     const zooming = this.advanceZoom(dt);
     return turning || zooming;
   }
 
-  private updateZoomTarget(now: number): void {
-    if (this.target) {
+  private updateZoomTarget(): void {
+    if (!this.closeUp) {
+      this.zoomTarget = 0;
+    } else if (this.target) {
       const remaining = Math.hypot(this.target.yaw - this.yaw, this.target.pitch - this.pitch);
       this.zoomTarget = remaining > ZOOM_OUT_DISTANCE ? 0 : 1;
-    } else if (this.autoRotate && !this.dragging && !this.hoverHold && now >= this.holdUntil) {
-      // The spin has resumed. With rotation off the zoom stays where it was.
-      this.zoomTarget = 0;
+    } else {
+      this.zoomTarget = 1;
     }
   }
 

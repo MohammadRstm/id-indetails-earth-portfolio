@@ -23,7 +23,12 @@ interface GlobeStageProps {
   groups: LocationGroup[];
   activeGroupId: string;
   activeProject: Project;
-  autoRotate: boolean;
+  /** Close-up of the active project, used while its page is open. */
+  closeUp: boolean;
+  /** Dragging the globe and clicking its places; off during the close-up. */
+  interactive: boolean;
+  /** Ripples and route flow. */
+  animate: boolean;
   reducedMotion: boolean;
   /** Empty layout cell the globe is centred in. */
   frameRef: RefObject<HTMLElement | null>;
@@ -34,7 +39,9 @@ export function GlobeStage({
   groups,
   activeGroupId,
   activeProject,
-  autoRotate,
+  closeUp,
+  interactive,
+  animate,
   reducedMotion,
   frameRef,
   onSelectGroup,
@@ -46,23 +53,29 @@ export function GlobeStage({
     const { lat, lng } = activeProject.location;
     const start = orientationFor(lat, lng);
     if (!reducedMotion) start.yaw += INTRO_YAW_OFFSET;
-    return new GlobeController(start, { autoRotate, reducedMotion });
+    // The globe only turns to follow the selected project; it has no spin of its own.
+    return new GlobeController(start, { autoRotate: false, reducedMotion });
   });
   const [projector] = useState(() => new MarkerProjector());
   const [layout] = useState(() => new GlobeLayout());
   const [contextLost, setContextLost] = useState(false);
+  const [onScreen, setOnScreen] = useState(true);
   const viewportRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ pointerId: number; x: number; y: number; pitch: boolean } | null>(null);
 
-  useEffect(() => controller.setAutoRotate(autoRotate), [controller, autoRotate]);
   useEffect(() => controller.setReducedMotion(reducedMotion), [controller, reducedMotion]);
+  useEffect(() => controller.setCloseUp(closeUp), [controller, closeUp]);
+
+  // Nothing needs to animate while the globe is scrolled out of view.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => controller.requestFrame(), [controller, activeGroupId]);
-
-  useEffect(() => {
-    projector.setStage(viewportRef.current);
-    return () => projector.setStage(null);
-  }, [projector]);
 
   useEffect(() => {
     if (!ready) return;
@@ -81,7 +94,7 @@ export function GlobeStage({
       const centerX = inner.left - outer.left + inner.width / 2;
       const centerY = inner.top - outer.top + inner.height / 2;
       const diameter = Math.min(inner.width, inner.height) * globeFill(inner.width);
-      layout.update(centerX, centerY, diameter, inner.width, inner.height);
+      layout.update(centerX, centerY, diameter, inner.width, inner.height, reducedMotion);
       viewport.style.setProperty('--globe-x', `${centerX}px`);
       viewport.style.setProperty('--globe-y', `${centerY}px`);
       viewport.style.setProperty('--globe-d', `${diameter}px`);
@@ -92,10 +105,10 @@ export function GlobeStage({
     observer.observe(viewport);
     observer.observe(frame);
     return () => observer.disconnect();
-  }, [frameRef, layout, controller]);
+  }, [frameRef, layout, controller, reducedMotion]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!ready || event.button !== 0 || (event.target as Element).closest('.globe-marker')) return;
+    if (!ready || !interactive || event.button !== 0 || (event.target as Element).closest('.globe-marker')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.dataset.dragging = 'true';
     drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, pitch: event.pointerType !== 'touch' };
@@ -119,8 +132,6 @@ export function GlobeStage({
     controller.endDrag(nowSeconds());
   };
 
-  const handleHover = useCallback((hovering: boolean) => controller.setHoverHold(hovering), [controller]);
-
   let notice: string | null = null;
   if (!webgl) notice = 'This browser cannot display the 3D globe. Every project is still listed below.';
   else if (contextLost) notice = 'The 3D view was interrupted by the graphics driver. Reload the page to restore it.';
@@ -132,18 +143,18 @@ export function GlobeStage({
       className="globe-stage"
       data-ready={ready}
       data-webgl={webgl}
-      data-rotating={autoRotate}
+      data-interactive={interactive}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
     >
       {webgl && (
-        <div className="globe-stage__canvas" role="img" aria-label="Rotating 3D Earth with project locations marked">
+        <div className="globe-stage__canvas" role="img" aria-label="3D Earth with project locations marked">
           <Canvas
             frameloop="demand"
             flat
-            dpr={[1, 1.75]}
+            dpr={[1, 1.5]}
             camera={{ fov: 30, near: 0.1, far: 300, position: [0, 0, 6] }}
             gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
             onCreated={({ gl }) => {
@@ -161,12 +172,11 @@ export function GlobeStage({
               controller={controller} projector={projector}
               layout={layout}
               textures={textures}
+              animate={animate && onScreen}
             />
           </Canvas>
         </div>
       )}
-
-      <div className="globe-stage__scrim" aria-hidden="true" />
 
       <div className="globe-stage__markers">
         {webgl &&
@@ -177,7 +187,6 @@ export function GlobeStage({
               active={group.id === activeGroupId}
               projector={projector}
               onSelect={onSelectGroup}
-              onHover={handleHover}
             />
           ))}
       </div>
@@ -185,9 +194,7 @@ export function GlobeStage({
       {webgl && textures.status === 'loading' && (
         <div className="globe-loader" role="status">
           <span className="globe-loader__ring" aria-hidden="true" />
-          <span className="globe-loader__text">
-            Loading Earth imagery, {textures.loaded} of {textures.total}
-          </span>
+          <span className="globe-loader__text">Loading the globe</span>
         </div>
       )}
 
@@ -205,14 +212,13 @@ interface GlobeMarkerProps {
   active: boolean;
   projector: MarkerProjector;
   onSelect: (groupId: string) => void;
-  onHover: (hovering: boolean) => void;
 }
 
 /**
- * Pointer affordance only: keyboard and screen-reader users select projects
- * through the location list, which never moves or disappears behind the globe.
+ * Pointer affordance only: keyboard and screen-reader users reach projects
+ * through the project controls beside the strip.
  */
-function GlobeMarker({ group, active, projector, onSelect, onHover }: GlobeMarkerProps) {
+function GlobeMarker({ group, active, projector, onSelect }: GlobeMarkerProps) {
   const { id, lat, lng } = group;
   const attach = useCallback(
     (element: HTMLButtonElement | null) => {
@@ -231,14 +237,8 @@ function GlobeMarker({ group, active, projector, onSelect, onHover }: GlobeMarke
       data-active={active}
       tabIndex={-1}
       aria-hidden="true"
+      title={group.projects.map((project) => project.title).join(', ')}
       onClick={() => onSelect(group.id)}
-      onPointerEnter={() => onHover(true)}
-      onPointerLeave={() => onHover(false)}
-    >
-      <span className="globe-marker__label">
-        {group.city}
-        {group.projects.length > 1 && <span className="globe-marker__count">{group.projects.length} projects</span>}
-      </span>
-    </button>
+    />
   );
 }
