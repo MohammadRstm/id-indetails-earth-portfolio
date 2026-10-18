@@ -103,7 +103,7 @@ The project photographs in `public/projects` are free-licence images from Pexels
 
 The font is Archivo Variable, via `@fontsource-variable/archivo`, under the SIL Open Font License 1.1.
 
-The logo is redrawn as vector shapes from the studio's PNG mark, so it stays sharp at any size: `LogoMark` in `components/icons.tsx` (header and footer) and `public/favicon.svg` (the browser tab) hold the same shapes.
+The logo is the split "0" from the studio's PNG mark, redrawn as vector shapes without its black square so it sits directly on the page and stays sharp at any size: `LogoMark` in `components/icons.tsx` (header and footer, in the text colour) and `public/favicon.svg` (the browser tab, dark on light browser themes and white on dark ones) hold the same shapes.
 
 ## Testing
 

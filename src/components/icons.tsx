@@ -63,15 +63,17 @@ export const CloseIcon = (props: IconProps) => (
   </svg>
 );
 
-/** The ID-Indetails logo: a split white "0" on a black rounded square. Also `public/favicon.svg`. */
+/** The two halves of the logo's split "0", in the PNG's 1024-unit coordinates. Also `public/favicon.svg`. */
+const LOGO_HALVES = [
+  'M495.5 95.68A221 245 0 0 0 291 340V685A221 243 0 0 0 495.5 927.32V777.21A77 77 0 0 1 435 702V320A77 77 0 0 1 495.5 244.79Z',
+  'M528.5 95.68A221 245 0 0 1 733 340V685A221 243 0 0 1 528.5 927.32V777.21A77 77 0 0 0 589 702V320A77 77 0 0 0 528.5 244.79Z',
+];
+
+/** The ID-Indetails logo: the split "0" on its own, in the text colour. */
 export const LogoMark = (props: IconProps) => (
-  <svg viewBox="0 0 1024 1024" width={28} height={28} aria-hidden focusable={false} {...props}>
-    <rect width="1024" height="1024" rx="220" fill="#000" />
-    <path
-      fill="#fff"
-      fillRule="evenodd"
-      d="M291 340A221 245 0 0 1 733 340V685A221 243 0 0 1 291 685ZM435 320A77 77 0 0 1 589 320V702A77 77 0 0 1 435 702Z"
-    />
-    <path fill="#000" d="M495 80h33v180h-33ZM495 760h33v190h-33Z" />
+  <svg viewBox="291 95 442 833" width={16} height={30} fill="currentColor" aria-hidden focusable={false} {...props}>
+    {LOGO_HALVES.map((d) => (
+      <path key={d} d={d} />
+    ))}
   </svg>
 );

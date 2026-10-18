@@ -178,9 +178,6 @@ img[data-loaded='false'] {
 
 .wordmark__logo {
   flex: none;
-  /* A faint ring keeps the black tile's rounded square visible on the dark page. */
-  border-radius: 21.5%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .wordmark__name {
