@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { Color, type Texture } from 'three';
+import { BufferAttribute, BufferGeometry, Color, LineBasicMaterial, LineSegments, type Material, type Object3D, type Texture } from 'three';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
@@ -15,23 +15,45 @@ const FADE_RATE = 4;
 
 interface LineStyle {
   color: string;
-  /** Width in CSS pixels. */
-  width: number;
   opacity: number;
 }
 
-const COAST: LineStyle = { color: '#7d838f', width: 0.9, opacity: 0.55 };
-const BORDER: LineStyle = { color: '#7d838f', width: 0.8, opacity: 0.3 };
-const HIGHLIGHT: LineStyle = { color: '#4fd8ff', width: 1.3, opacity: 0.9 };
+const COAST: LineStyle = { color: '#8a909c', opacity: 0.6 };
+const BORDER: LineStyle = { color: '#8a909c', opacity: 0.34 };
+const HIGHLIGHT: LineStyle = { color: '#4fd8ff', opacity: 0.9 };
+/** Width of the selected country's outline, in CSS pixels. */
+const HIGHLIGHT_WIDTH = 1.3;
 
 const outlineOf = (country: CountryShape): LngLat[][] => country.polygons.flat();
 
-function createLines(positions: Float32Array, style: LineStyle, dpr: number) {
+interface LineSet {
+  lines: Object3D;
+  geometry: BufferGeometry;
+  material: Material;
+  style: LineStyle;
+}
+
+/**
+ * Coastlines and borders: about 75,000 segments, so they are plain one-pixel
+ * GL lines, one cheap draw. Wide lines for all of them cost enough GPU time to
+ * drop frames while the globe moves.
+ */
+function createThinLines(positions: Float32Array, style: LineStyle): LineSet {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(positions, 3));
+  const material = new LineBasicMaterial({ color: new Color(style.color), transparent: true, opacity: 0, depthWrite: false });
+  const lines = new LineSegments(geometry, material);
+  lines.renderOrder = 2;
+  return { lines, geometry, material, style };
+}
+
+/** The selected country's outline: few segments, so it can afford a true pixel width. */
+function createWideLines(positions: Float32Array, style: LineStyle, width: number, dpr: number): LineSet {
   const geometry = new LineSegmentsGeometry();
   geometry.setPositions(positions);
   const material = new LineMaterial({
     color: new Color(style.color),
-    linewidth: style.width * dpr,
+    linewidth: width * dpr,
     transparent: true,
     opacity: 0,
     depthWrite: false,
@@ -40,8 +62,6 @@ function createLines(positions: Float32Array, style: LineStyle, dpr: number) {
   lines.renderOrder = 2;
   return { lines, geometry, material, style };
 }
-
-type LineSet = ReturnType<typeof createLines>;
 
 function fadeLines(sets: LineSet[], factor: number): void {
   for (const { material, style } of sets) material.opacity = style.opacity * factor;
@@ -86,13 +106,13 @@ export function CountryBorders({ data, activeCountryId, uniforms }: CountryBorde
 
   const base = useMemo<LineSet[]>(
     () => [
-      createLines(segmentPositions(data.coasts, LINE_RADIUS), COAST, dpr),
-      createLines(segmentPositions(data.borders, LINE_RADIUS), BORDER, dpr),
+      createThinLines(segmentPositions(data.coasts, LINE_RADIUS), COAST),
+      createThinLines(segmentPositions(data.borders, LINE_RADIUS), BORDER),
     ],
-    [data, dpr],
+    [data],
   );
   const highlight = useMemo<LineSet[]>(
-    () => (country ? [createLines(segmentPositions(outlineOf(country), LINE_RADIUS), HIGHLIGHT, dpr)] : []),
+    () => (country ? [createWideLines(segmentPositions(outlineOf(country), LINE_RADIUS), HIGHLIGHT, HIGHLIGHT_WIDTH, dpr)] : []),
     [country, dpr],
   );
   const mask = useMemo(() => (country ? createHighlightTexture(country) : null), [country]);
