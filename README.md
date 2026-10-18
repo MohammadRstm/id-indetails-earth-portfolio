@@ -48,11 +48,13 @@ src/
 
 **`src/data`**
 
-- `project.ts` defines the typed `Project` model: images (with credits), description, status (completed or in progress), client organisation, location, year, and a type (villa, residential, hotel), with their labels.
-- `demoProjects.ts` holds the illustrative projects. Each project's photographs live in `public/projects/<id>/`: `thumb.jpg` (portrait crop for the strip), `hero.jpg`, `gallery-1.jpg` and `gallery-2.jpg`.
+- `project.ts` defines the typed `Project` model: a numeric `id` and a URL-safe `slug` (the page address is `/projects/<slug>`), images (with credits), description, status (completed or in progress), client organisation (may be empty), location, year, a type (villa, residential, hotel), and whether it shows in the landing page's strip (`showInConveyor`, `conveyorOrder`; at most `CONVEYOR_LIMIT`, 20). The fields match the public website API.
+- `demoProjects.ts` holds the illustrative projects. Each project's photographs live in `public/projects/<slug>/`: `thumb.jpg` (portrait crop for the strip), `hero.jpg`, `gallery-1.jpg` and `gallery-2.jpg`.
 - `projectSource.ts` exposes `fetchProjects()`, the single swap point for a future API. Callers only see the function, so replacing its body with a request changes nothing else.
-- `site.ts` holds the company details shown across the site (contact email, social links, services) and `offices.ts` the studios (position, address, phone). **Every value in both is a placeholder**; these two files are the place to put the real details.
+- `site.ts` holds the company details shown across the site (contact info, social links, services, site settings) and `offices.ts` the studios (position, address, phone), in the same shapes as the API. **Every value in both is a placeholder**; these two files are the place to put the real details.
 - `contactSource.ts` exposes `sendContactMessage()`, the swap point for the ID-Indetails server. It is not connected yet and always fails with `ContactNotConnectedError`, so the form tells visitors to email instead of losing their message.
+
+**`src/api`** is the client for the public website API (`/api/public/website`, built in the ID-Indetails backend): one function per endpoint in `website.ts`, checks of every reply against the shapes the site relies on in `parsers.ts` (a broken row in a list is dropped and logged rather than taking the page down), errors from the API's `ApiErrorResponse` shape in `errors.ts`, and the base URL and image-address handling in `config.ts`. **It is not connected yet**: the site still reads `src/data`. See "Connecting to the API" below.
 
 **`src/components`**
 
@@ -81,19 +83,38 @@ src/
 
 ## Behaviour
 
-- **Landing.** The globe sits on the left, the strip right beside it, and the caption on the far right names the current project (on narrow screens the strip runs sideways below the globe, with the caption under it). The selected project's country border glows cyan. The strip starts drifting straight away, about eight seconds per project, lingering as each card passes the centre; new projects arrive from the top. The globe turns to each project as it becomes current.
+- **Landing.** The globe shows every project. The strip shows only those marked for it (`showInConveyor`), in their set order, at most 20; if none are marked, the first 20 stand in so it is never empty. The globe sits on the left, the strip right beside it, and the caption on the far right names the current project (on narrow screens the strip runs sideways below the globe, with the caption under it). The selected project's country border glows cyan. The strip starts drifting straight away, about eight seconds per project, lingering as each card passes the centre; new projects arrive from the top. The globe turns to each project as it becomes current.
 - **Choosing.** The strip can be scrolled with the wheel or trackpad, dragged and flung; the Previous and Next buttons and the Left and Right arrow keys step through projects. After any of these the drift waits about six seconds, then carries on. It also waits while the mouse rests on the strip. The strip loops forever. The Pause button stops the drift and the ripples.
 - **Opening a project.** Clicking a card, a blue dot on the globe or View project opens that project. The strip and the caption fade out, and the project's photograph fades back in as a panel on the right; the planet glides into the bottom-left corner, leaning so its edge runs diagonally, turns to the place and moves in, with the project's title above it at the top left. The page also scrolls down by the header's height, so the header moves out of sight and the whole photograph shows. On narrow screens there is no room beside the globe, so the photograph opens the page below instead. The project page follows below: photographs, the key facts, the brief, the design concept, materials, sustainability, credits, an enquiry prompt and the previous and next projects. Previous and next keep the close-up and turn the globe to the new place. All projects, the wordmark, Projects in the header or Escape go back; the globe zooms out and the strip returns at the same project.
-- **Pages and addresses.** The site has four kinds of address: `/` (the globe), `/projects/<id>`, `/studio` and `/contact`. The page never reloads: moving between them uses the History API, so links can be shared and the browser's Back and Forward buttons move between them with the same animations. Moving between projects replaces the entry, so Back always returns to where the first project was opened from. An unknown address falls back to the globe. The globe stays mounted, hidden and idle, behind the Studio and Contact pages, so it is ready the moment you come back.
+- **Projects page.** `/projects` shows every project as a grid of cards, with a search (title, client, city and country, ignoring case and accents), filters for type, status, year and country (each offering only the values the projects have), a sort (newest, oldest, title) and a Clear filters button. The filters live in the address (`/projects?type=villa&year=2024`), so a filtered list can be shared and is still there after opening a project and coming back. A card opens the project the same way as the strip; from a project opened here, Previous and Next move through every project rather than the strip's.
+- **Pages and addresses.** The site has five kinds of address: `/` (the globe), `/projects`, `/projects/<slug>`, `/studio` and `/contact`. The page never reloads: moving between them uses the History API, so links can be shared and the browser's Back and Forward buttons move between them with the same animations. Moving between projects replaces the entry, so Back always returns to where the first project was opened from. An unknown address falls back to the globe. The globe stays mounted, hidden and idle, behind the other pages, so it is ready the moment you come back.
 - **Contact form.** Name, email and message are required; phone is optional. Mistakes are shown beside each field and the first one is focused; corrected fields clear as you type. Sending is not connected yet, so a valid message ends with a note asking the visitor to email instead.
 - **Keyboard and screen readers.** The strip and the globe markers are pointer-only (`aria-hidden`, `tabIndex={-1}`); the caption's View project button and the Previous and Next buttons reach every project, and a live region announces the current one. The skip link jumps to the main content of whichever page is showing.
 - **Reduced motion.** With `prefers-reduced-motion` the strip does not drift and jumps instead of gliding, the globe jumps to each place and in and out of the close-up, the ripples are replaced by a still ring and the page transitions are near-instant.
 - Without WebGL 2 the globe is replaced by a notice and the strip and project pages keep working. If the country outlines fail to load, a graticule globe is shown with a notice.
 - **Offices.** Red points mark the studios in Beirut and Abidjan (`data/offices.ts`), each labelled ID-Indetails. They do not move and cannot be clicked.
 
+## Connecting to the API
+
+The public endpoints agreed with the API (all under `/api/public/website`, anonymous; JSON in camelCase, lists in display order, errors as `ApiErrorResponse`):
+
+| Call | Function in `api/website.ts` | Replaces |
+|---|---|---|
+| `GET /projects`, `GET /projects/{slug}` | `getProjects`, `getProject` | `demoProjects` via `data/projectSource.ts` |
+| `GET /services` | `getServices` | `services` in `data/site.ts` |
+| `GET /locations` | `getLocations` | `offices` in `data/offices.ts` |
+| `GET /contact` | `getContactInfo` | `contactInfo` in `data/site.ts` |
+| `GET /social-links` | `getSocialLinks` | `socialLinks` in `data/site.ts` |
+| `GET /settings` | `getSiteSettings` | `siteSettings` in `data/site.ts` (the favicon; PNG, JPEG or WebP) |
+| `POST /contact-messages` (202) | `postContactMessage` | `sendContactMessage` in `data/contactSource.ts` |
+
+The contact form sends a hidden honeypot field, `website`; the API quietly drops messages where it is filled in. Image paths come back root-relative to the API (`/api/public/website/files/42`) and are resolved against `VITE_API_BASE_URL` when the API is on another origin.
+
+`VITE_API_BASE_URL` (see `.env.example`, read at build time) sets where the API is; by default it is `/api/public/website` on the site's own origin, which needs the web server to proxy `/api` to the API. Keep the static data until the API is live, then switch the data sources and pages over to these functions.
+
 ## Hosting
 
-Because the addresses are real paths (`/studio`, `/projects/alfama-lofts`), the web server must answer any unknown path with `index.html` (the usual single-page-app fallback). Vite's dev and preview servers already do this. The site expects to be served from the root of its domain.
+Because the addresses are real paths (`/projects`, `/studio`, `/projects/alfama-lofts`), the web server must answer any unknown path with `index.html` (the usual single-page-app fallback). Vite's dev and preview servers already do this. The site expects to be served from the root of its domain.
 
 ## Assets and licences
 
@@ -107,11 +128,11 @@ The logo is the split "0" from the studio's PNG mark, redrawn as vector shapes w
 
 ## Testing
 
-`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address), `lib/contactForm.ts` (the form's checks), `data/contactSource.ts` (that it reports not being connected) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text and a credit, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
+`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address), `lib/projectFilters.ts` (the projects page's search, filters, sorting and their address form), `lib/conveyor.ts` (which projects the strip shows), `api/` (reading the API's replies and errors against a stubbed `fetch`), `lib/contactForm.ts` (the form's checks), `data/contactSource.ts` (that it reports not being connected) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text and a credit, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
 
 ## Known limitations
 
-- Projects are local demonstration data; there is no API behind `fetchProjects()` yet.
+- Projects are local demonstration data. The API client (`src/api`) is written and tested against the agreed contract but not connected; the site switches over once the API is live.
 - The contact form is not connected to a server yet (`sendContactMessage()` in `data/contactSource.ts`), and the contact details, social links and services are placeholders (`data/site.ts`, `data/offices.ts`).
 - The Google maps load as soon as the Contact page opens, which sets Google's cookies; a cookie notice may be needed where the law requires one.
 - The sun is fixed relative to the camera, so the lit face is a stylised look, not the real time of day.
