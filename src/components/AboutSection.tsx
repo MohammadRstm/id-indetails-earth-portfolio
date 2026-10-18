@@ -18,7 +18,7 @@ export function AboutSection() {
       </div>
       <footer className="site-footer">
         <p>© {new Date().getFullYear()} ID-Indetails</p>
-        <p>Land and sea mask derived from GEBCO data via NASA Earth Observatory, in the public domain.</p>
+        <p>Country outlines from Natural Earth, in the public domain.</p>
       </footer>
     </section>
   );

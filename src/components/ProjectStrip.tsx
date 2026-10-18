@@ -60,7 +60,8 @@ interface ProjectStripProps {
   running: boolean;
   reducedMotion: boolean;
   onActiveChange: (index: number) => void;
-  onOpen: (index: number) => void;
+  /** `rect` is where the clicked card is on screen, so its photo can grow from there. */
+  onOpen: (index: number, rect: DOMRect) => void;
 }
 
 const nowSeconds = () => performance.now() / 1000;
@@ -294,10 +295,10 @@ export function ProjectStrip({
     }, 0);
   };
 
-  const handleOpen = (slot: number) => {
+  const handleOpen = (slot: number, card: HTMLElement) => {
     if (motion.current.suppressClick) return;
     motion.current.pausedUntil = nowSeconds() + RESUME_AFTER_SECONDS;
-    onOpen(mod(slot, count));
+    onOpen(mod(slot, count), card.getBoundingClientRect());
   };
 
   const slotNumbers: number[] = [];
@@ -332,7 +333,7 @@ export function ProjectStrip({
             type="button"
             className="strip__card"
             tabIndex={-1}
-            onClick={() => handleOpen(slot)}
+            onClick={(event) => handleOpen(slot, event.currentTarget)}
           >
             <img src={project.thumbnail} alt="" draggable={false} decoding="async" />
           </button>

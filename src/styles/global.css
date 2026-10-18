@@ -218,10 +218,13 @@ img {
 }
 
 .explorer__hero {
+  --dock-w: clamp(340px, 38vw, 640px);
+  --dock-gap: clamp(28px, 3.6vw, 72px);
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(250px, 21vw, 340px) clamp(200px, 16vw, 270px);
+  /* Globe, then the strip beside it, then the caption. */
+  grid-template-columns: minmax(0, 1fr) clamp(200px, 16vw, 270px) clamp(250px, 21vw, 340px);
   grid-template-rows: minmax(0, 1fr);
   column-gap: clamp(28px, 3.6vw, 72px);
   height: var(--hero-h);
@@ -235,13 +238,33 @@ img {
   min-height: 0;
 }
 
-/* The project page: the globe takes the whole hero, the strip and caption make way. */
+/* The project page: the globe takes everything left of the docked photograph. */
 .explorer[data-view='project'] .explorer__frame {
   grid-column: 1 / -1;
+  margin-right: calc(var(--dock-w) + var(--dock-gap));
+}
+
+.explorer__strip {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  /* Runs the full height of the screen, under the header. */
+  margin: calc(-1 * var(--header-h)) 0 -28px;
+  pointer-events: auto;
+  transition:
+    transform 0.7s var(--ease-out),
+    opacity 0.5s ease;
+}
+
+/* The chosen card's photo grows out of the strip; the rest of the strip falls away. */
+.explorer[data-view='project'] .explorer__strip {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
 }
 
 .showcase {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   align-self: center;
   display: flex;
@@ -269,22 +292,24 @@ img {
   gap: 10px;
 }
 
-.explorer__strip {
-  grid-column: 3;
-  grid-row: 1;
-  position: relative;
-  /* Runs the full height of the screen, under the header. */
-  margin: calc(-1 * var(--header-h)) 0 -28px;
+/* The project's photograph, held to the right of the globe's close-up. */
+.dock {
+  position: absolute;
+  top: calc(var(--header-h) + 8px);
+  right: var(--gutter);
+  bottom: 28px;
+  width: var(--dock-w);
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-raised);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
-  transition:
-    transform 0.8s var(--ease-in-out),
-    opacity 0.6s ease;
 }
 
-.explorer[data-view='project'] .explorer__strip {
-  opacity: 0;
-  transform: translateX(calc(100% + var(--gutter)));
-  pointer-events: none;
+.dock img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .explorer--empty {
@@ -512,11 +537,11 @@ img {
 
 .heading {
   position: absolute;
-  inset: 0;
+  inset: 0 calc(var(--dock-w) + var(--dock-gap) + var(--gutter)) 0 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr auto;
-  padding: calc(var(--header-h) + 4px) var(--gutter) clamp(28px, 6vh, 64px);
+  padding: calc(var(--header-h) + 4px) 0 clamp(28px, 6vh, 64px) var(--gutter);
   pointer-events: none;
   animation: rise-in 0.9s var(--ease-out) 0.6s both;
 }
@@ -564,7 +589,7 @@ img {
 
 .heading__title {
   margin-top: 14px;
-  font-size: clamp(52px, 8vw, 132px);
+  font-size: clamp(48px, 6vw, 112px);
   font-weight: 620;
   font-stretch: 66%;
   line-height: 0.86;
@@ -640,6 +665,7 @@ img {
 }
 
 .project-page__hero {
+  display: none;
   aspect-ratio: 21 / 9;
 }
 
@@ -967,14 +993,18 @@ img {
 
   .explorer[data-view='project'] .explorer__frame {
     height: calc(100svh - var(--header-h));
+    margin-right: 0;
   }
 
+  /* No room beside the globe: the photograph opens the page below it instead. */
   .explorer[data-view='project'] .showcase,
-  .explorer[data-view='project'] .explorer__strip {
+  .explorer[data-view='project'] .explorer__strip,
+  .dock {
     display: none;
   }
 
   .heading {
+    inset: 0;
     grid-template-columns: minmax(0, 1fr);
     padding-inline: 20px;
   }
@@ -993,6 +1023,7 @@ img {
   }
 
   .project-page__hero {
+    display: block;
     aspect-ratio: 4 / 3;
   }
 

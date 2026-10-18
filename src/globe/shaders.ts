@@ -1,9 +1,9 @@
 /**
- * GLSL for the globe. The Earth is drawn as a grey dot matrix over land and a
- * see-through ocean: a far-side pass shows the land on the back of the planet
- * dimly through the water, and the near-side pass adds the lit dots and a soft
- * light along the edge. Lighting is fixed relative to the camera, from the
- * upper left.
+ * GLSL for the globe. The Earth is flat, dark land over a see-through ocean:
+ * a far-side pass shows the land on the back of the planet dimly through the
+ * water, and the near-side pass adds softly lit land and a light along the
+ * edge. Country borders are drawn as lines on top (`CountryBorders.tsx`).
+ * Lighting is fixed relative to the camera, from the upper left.
  */
 
 export const earthVertexShader = /* glsl */ `
@@ -25,7 +25,9 @@ export const earthVertexShader = /* glsl */ `
  * exactly as specified; there is deliberately no colour-space conversion here.
  */
 export const earthFragmentShader = /* glsl */ `
-  uniform sampler2D uWater;
+  uniform sampler2D uLand;
+  uniform sampler2D uHighlight;
+  uniform float uHighlightLevel;
   uniform vec3 uSunDir;
   uniform float uReveal;
   /** 1 for the pass that draws the far hemisphere, seen through the oceans. */
@@ -35,51 +37,37 @@ export const earthFragmentShader = /* glsl */ `
   varying vec3 vNormalW;
   varying vec3 vPosW;
 
-  const float PI = 3.14159265;
-  const float ROWS = 210.0;
-  const float DOT_RADIUS = 0.33;
-
-  float landAt(vec2 uv, float lod) {
-    return 1.0 - smoothstep(0.35, 0.65, textureLod(uWater, uv, lod).r);
-  }
+  // Kept dark so the project locations, not the land, draw the eye.
+  const vec3 LAND = vec3(0.105, 0.11, 0.122);
+  const vec3 OCEAN = vec3(0.028, 0.03, 0.034);
+  const vec3 GLOW = vec3(0.24, 0.8, 1.0);
 
   void main() {
-    // Rows of equal latitude, each holding as many dots as fit, so dots stay round and evenly spaced up to the poles.
-    float rowCoord = vUv.y * ROWS;
-    float row = floor(rowCoord);
-    float lat = ((row + 0.5) / ROWS - 0.5) * PI;
-    float cols = max(3.0, floor(2.0 * ROWS * cos(lat)));
-    vec2 cell = vec2(vUv.x * cols, rowCoord);
-    vec2 centreUv = vec2((floor(cell.x) + 0.5) / cols, (row + 0.5) / ROWS);
-    // Each dot is fully on or off: the mask is read once at the dot's centre.
-    float land = landAt(centreUv, 0.0);
-
-    float aa = fwidth(rowCoord);
-    float shape = 1.0 - smoothstep(DOT_RADIUS - aa, DOT_RADIUS + aa, length(fract(cell) - 0.5));
-    // Once a dot is only a pixel or two across, fade to an even tone so the grid never shimmers.
-    // The tone sits a little above the dots' true coverage, which would read too dim.
-    float dots = land * mix(shape, 1.5 * PI * DOT_RADIUS * DOT_RADIUS, smoothstep(0.35, 0.9, aa));
-
-    vec3 N = normalize(vNormalW);
-    vec3 V = normalize(cameraPosition - vPosW);
-    float light = 0.38 + 0.62 * smoothstep(-0.45, 0.85, dot(N, normalize(uSunDir)));
+    float land = texture2D(uLand, vUv).a;
 
     if (uFarSide > 0.5) {
-      float alpha = dots * 0.34 * uReveal;
+      float alpha = land * 0.45 * uReveal;
       if (alpha < 0.002) discard;
-      gl_FragColor = vec4(vec3(0.62) * alpha, alpha);
+      gl_FragColor = vec4(LAND * 0.55 * alpha, alpha);
       return;
     }
 
-    float facing = clamp(dot(N, V), 0.0, 1.0);
-    float rim = pow(1.0 - facing, 2.6);
-    // A faint wash under the dots keeps the continents legible where the dots thin out.
-    float wash = landAt(vUv, 0.0) * 0.05 * light;
+    vec3 N = normalize(vNormalW);
+    vec3 V = normalize(cameraPosition - vPosW);
+    float light = 0.55 + 0.45 * smoothstep(-0.45, 0.85, dot(N, normalize(uSunDir)));
+    float rim = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.8);
 
-    float oceanAlpha = 0.3 + 0.35 * rim;
-    vec3 color = vec3(0.045) * oceanAlpha * (1.0 - dots) + vec3(0.8) * light * dots + vec3(wash);
-    float alpha = oceanAlpha * (1.0 - dots) + dots;
-    color += vec3(0.82) * rim * (0.22 + 0.4 * light);
+    float oceanAlpha = 0.32 + 0.4 * rim;
+    vec3 color = OCEAN * oceanAlpha * (1.0 - land) + LAND * light * land;
+    float alpha = oceanAlpha * (1.0 - land) + land;
+    color += vec3(0.5, 0.53, 0.58) * rim * (0.12 + 0.2 * light);
+
+    // The selected country: a soft cyan band either side of its border and a faint tint inside.
+    vec2 mask = texture2D(uHighlight, vUv).rg;
+    float band = 1.0 - abs(mask.g - 0.5) * 2.0;
+    float glow = (band * band * 0.32 + mask.r * 0.05) * uHighlightLevel;
+    color += GLOW * glow;
+    alpha += glow * 0.6;
 
     gl_FragColor = vec4(color, min(alpha, 1.0)) * uReveal;
   }

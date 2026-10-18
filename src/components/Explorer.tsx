@@ -7,6 +7,7 @@ import { groupByLocation } from '../lib/geo';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { MotionToggle } from './MotionToggle';
 import { ProjectCaption } from './ProjectCaption';
+import { ProjectDock } from './ProjectDock';
 import { ProjectHeading, ProjectPage } from './ProjectPage';
 import { ProjectStrip } from './ProjectStrip';
 
@@ -68,12 +69,19 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
     [projects, projectOpen, currentId, open],
   );
 
+  // Where the chosen project's photo was on screen, so the photo can grow from there into its place on the project page.
+  const [dockOrigin, setDockOrigin] = useState<{ id: string; rect: DOMRect } | null>(null);
+
   const openProject = useCallback(
-    (id: string) => {
+    (id: string, origin?: DOMRect) => {
+      if (!projectOpen) {
+        const card = origin ?? document.querySelector('.explorer__strip .strip__card[data-current="true"]')?.getBoundingClientRect();
+        setDockOrigin(card ? { id, rect: card } : null);
+      }
       setSelectedId(id);
       open(id);
     },
-    [open],
+    [open, projectOpen],
   );
 
   const selectGroup = useCallback(
@@ -140,6 +148,19 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
       <div className="explorer__hero">
         <div className="explorer__frame" ref={frameRef} aria-hidden="true" />
 
+        <div className="explorer__strip" inert={projectOpen}>
+          <ProjectStrip
+            projects={projects}
+            activeIndex={index}
+            axis={narrow ? 'x' : 'y'}
+            drifting={motionOn && !reducedMotion}
+            running={!projectOpen}
+            reducedMotion={reducedMotion}
+            onActiveChange={(next) => setSelectedId(projects[next].id)}
+            onOpen={(next, rect) => openProject(projects[next].id, rect)}
+          />
+        </div>
+
         <section className="showcase" id="project-controls" tabIndex={-1} aria-label="Projects" inert={projectOpen}>
           <ProjectCaption projects={projects} project={project} onOpen={openProject} />
           <div className="showcase__controls">
@@ -153,19 +174,14 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
           </div>
         </section>
 
-        <div className="explorer__strip" inert={projectOpen}>
-          <ProjectStrip
-            projects={projects}
-            activeIndex={index}
-            axis={narrow ? 'x' : 'y'}
-            drifting={motionOn && !reducedMotion}
-            running={!projectOpen}
+        {projectOpen && (
+          <ProjectDock
+            key={project.id}
+            project={project}
+            origin={dockOrigin?.id === project.id ? dockOrigin.rect : null}
             reducedMotion={reducedMotion}
-            onActiveChange={(next) => setSelectedId(projects[next].id)}
-            onOpen={(next) => openProject(projects[next].id)}
           />
-        </div>
-
+        )}
         {projectOpen && <ProjectHeading project={project} onBack={close} />}
       </div>
 

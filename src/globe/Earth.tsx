@@ -2,10 +2,10 @@ import { useEffect, useMemo } from 'react';
 import { BackSide, FrontSide, ShaderMaterial, SphereGeometry, type Side } from 'three';
 import type { SceneUniforms } from './sceneUniforms';
 import { earthFragmentShader, earthVertexShader } from './shaders';
-import type { EarthTextures } from './useEarthTextures';
+import type { CountryAssets } from './useCountryData';
 
 interface EarthProps {
-  textures: EarthTextures;
+  assets: CountryAssets;
   uniforms: SceneUniforms;
 }
 
@@ -14,7 +14,7 @@ interface EarthProps {
  * the outside. The near side writes depth so markers and routes behind the
  * planet stay hidden even though its oceans are see-through.
  */
-export function Earth({ textures, uniforms }: EarthProps) {
+export function Earth({ assets, uniforms }: EarthProps) {
   const geometry = useMemo(() => new SphereGeometry(1, 192, 128), []);
   const [far, near] = useMemo(() => {
     const pass = (side: Side, farSide: boolean) =>
@@ -26,14 +26,16 @@ export function Earth({ textures, uniforms }: EarthProps) {
         premultipliedAlpha: true,
         depthWrite: !farSide,
         uniforms: {
-          uWater: { value: textures.water },
+          uLand: { value: assets.land },
           uFarSide: { value: farSide ? 1 : 0 },
+          uHighlight: uniforms.uHighlight,
+          uHighlightLevel: uniforms.uHighlightLevel,
           uSunDir: uniforms.uSunDir,
           uReveal: uniforms.uReveal,
         },
       });
     return [pass(BackSide, true), pass(FrontSide, false)];
-  }, [textures, uniforms]);
+  }, [assets, uniforms]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(

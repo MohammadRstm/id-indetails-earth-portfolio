@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
+import { offices, type Office } from '../data/offices';
 import type { Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
 import { orientationFor } from '../lib/geo';
@@ -8,7 +9,7 @@ import { GlobeController } from './GlobeController';
 import { GlobeLayout } from './GlobeLayout';
 import { GlobeScene } from './GlobeScene';
 import { MarkerProjector } from './MarkerProjector';
-import { useEarthTextures } from './useEarthTextures';
+import { useCountryData } from './useCountryData';
 import './globe.css';
 
 /** Share of the layout frame's shorter side the globe fills (more on narrow screens). */
@@ -47,8 +48,8 @@ export function GlobeStage({
   onSelectGroup,
 }: GlobeStageProps) {
   const [webgl] = useState(isWebGL2Available);
-  const textures = useEarthTextures(webgl);
-  const ready = textures.status !== 'loading';
+  const countries = useCountryData(webgl);
+  const ready = countries.status !== 'loading';
   const [controller] = useState(() => {
     const { lat, lng } = activeProject.location;
     const start = orientationFor(lat, lng);
@@ -135,7 +136,7 @@ export function GlobeStage({
   let notice: string | null = null;
   if (!webgl) notice = 'This browser cannot display the 3D globe. Every project is still listed below.';
   else if (contextLost) notice = 'The 3D view was interrupted by the graphics driver. Reload the page to restore it.';
-  else if (textures.status === 'error') notice = 'Earth imagery could not be loaded, so a simplified globe is shown.';
+  else if (countries.status === 'error') notice = 'The map could not be loaded, so a simplified globe is shown.';
 
   return (
     <div
@@ -171,7 +172,9 @@ export function GlobeStage({
               activeGroupId={activeGroupId}
               controller={controller} projector={projector}
               layout={layout}
-              textures={textures}
+              countries={countries}
+              activeLocation={activeProject.location}
+              offices={offices}
               animate={animate && onScreen}
             />
           </Canvas>
@@ -189,9 +192,10 @@ export function GlobeStage({
               onSelect={onSelectGroup}
             />
           ))}
+        {webgl && offices.map((office) => <OfficeLabel key={office.id} office={office} projector={projector} />)}
       </div>
 
-      {webgl && textures.status === 'loading' && (
+      {webgl && countries.status === 'loading' && (
         <div className="globe-loader" role="status">
           <span className="globe-loader__ring" aria-hidden="true" />
           <span className="globe-loader__text">Loading the globe</span>
@@ -240,5 +244,25 @@ function GlobeMarker({ group, active, projector, onSelect }: GlobeMarkerProps) {
       title={group.projects.map((project) => project.title).join(', ')}
       onClick={() => onSelect(group.id)}
     />
+  );
+}
+
+/** The company's name beside each studio's red dot; it turns with the globe like the markers. */
+function OfficeLabel({ office, projector }: { office: Office; projector: MarkerProjector }) {
+  const { id, lat, lng } = office;
+  const attach = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) return;
+      projector.register(`office-${id}`, lat, lng, element);
+      return () => projector.unregister(`office-${id}`);
+    },
+    [projector, id, lat, lng],
+  );
+
+  return (
+    <div ref={attach} className="globe-office">
+      <span className="globe-office__name">ID-Indetails</span>
+      <span className="globe-office__city">{office.city}</span>
+    </div>
   );
 }

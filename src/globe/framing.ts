@@ -3,7 +3,12 @@ import { ZOOM_PITCH_BIAS } from './GlobeController';
 import type { GlobeLayout } from './GlobeLayout';
 
 /** A slight axial lean, so the globe reads as a planet rather than a diagram. */
-export const AXIAL_ROLL = -0.13;
+const AXIAL_ROLL = -0.13;
+/** In the close-up the globe leans further, so its horizon runs at an angle beside the project's photograph. */
+const CLOSE_ROLL = 0.3;
+
+/** The globe's lean for a zoom between 0 (whole globe) and 1 (close-up). */
+export const rollFor = (zoom: number) => AXIAL_ROLL + (CLOSE_ROLL - AXIAL_ROLL) * zoom;
 
 /** Close-up composition, as fractions of the layout cell: globe radius per cell height, and where the place sits. */
 const CLOSE_RADIUS_DESKTOP = 1.4;
@@ -30,8 +35,8 @@ export function frameCamera(camera: PerspectiveCamera, layout: GlobeLayout, zoom
   // The place sits ZOOM_PITCH_BIAS off the screen centre, then the axial roll swings it sideways.
   const placeOffset = (focal * Math.sin(ZOOM_PITCH_BIAS)) / (closeDistance - Math.cos(ZOOM_PITCH_BIAS));
   const placeY = layout.centerY + (PLACE_DOWN_FRACTION - 0.5) * layout.frameHeight;
-  const closeX = layout.centerX + placeOffset * Math.sin(AXIAL_ROLL);
-  const closeY = placeY + placeOffset * Math.cos(AXIAL_ROLL);
+  const closeX = layout.centerX + placeOffset * Math.sin(CLOSE_ROLL);
+  const closeY = placeY + placeOffset * Math.cos(CLOSE_ROLL);
 
   const distance = overviewDistance ** (1 - zoom) * closeDistance ** zoom;
   const globeX = layout.centerX + (closeX - layout.centerX) * zoom;
