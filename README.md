@@ -114,7 +114,48 @@ The contact form sends a hidden honeypot field, `website`; the API quietly drops
 
 ## Hosting
 
-Because the addresses are real paths (`/projects`, `/studio`, `/projects/alfama-lofts`), the web server must answer any unknown path with `index.html` (the usual single-page-app fallback). Vite's dev and preview servers already do this. The site expects to be served from the root of its domain.
+Because the addresses are real paths (`/projects`, `/studio`, `/projects/alfama-lofts`), the web server must answer any unknown path with `index.html` (the usual single-page-app fallback). Vite's dev and preview servers already do this, and so does the container below. The site expects to be served from the root of its domain.
+
+### The container
+
+`Dockerfile` builds the site with Node and serves it from an unprivileged nginx on port 8080 (`deploy/nginx.conf`):
+
+- Files that exist are served; every other address gets `index.html`.
+- `/api/public/website/` is proxied to the API container (`http://api:8080`, resolved per request through Docker's DNS), so the browser stays on one origin. Every other `/api/` path answers 404: nothing else of the API is reachable through the website.
+- Headers: a Content Security Policy (the site itself plus the Google Maps embeds), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. The hashed bundles in `/assets/` are cached for a year and the page itself is never cached, so a new deployment shows at once.
+- `GET /healthz` answers `ok` for the container's health check.
+- It runs read-only with `--tmpfs /tmp`. TLS is handled in front of it (Caddy on the server).
+
+```bash
+docker build -t id-indetails-website .
+```
+
+```bash
+docker run --rm -p 8080:8080 --read-only --tmpfs /tmp id-indetails-website
+```
+
+## CI and deployment
+
+**CI** (`.github/workflows/ci.yml`) runs on pull requests to `master` and on `master` after a merge, except for Markdown-only changes and pushes with `[skip ci]`:
+
+1. The Dockerfile's `check` stage: `npm run typecheck`, `npm run lint` and `npm test`.
+2. The runtime image is built and started read-only with no capabilities, and checked: healthy, not root, every page address answers with the app, photos are served, a missing bundle is a 404, the private API is not reachable, the security headers are present and caching is right.
+3. A Trivy scan fails on fixable critical or high vulnerabilities.
+
+The actions are pinned to commits, as in the backend.
+
+**Publishing and deploying** (`.github/workflows/publish.yml`) is started by hand (Actions → Publish → Run workflow):
+
+- It runs the checks, then pushes `ghcr.io/mohammadrstm/id-indetails-website:sha-<7>`.
+- With **deploy** ticked, and after a reviewer approves the `production` environment, it logs the server in to GHCR, sets `WEBSITE_TAG` in the server's `.env` and restarts only the `website` service.
+- Giving **tag** deploys an image published earlier without building, for a rollback.
+
+Deploying needs the server side first. Hosting is not decided yet, so none of this is in place:
+
+- A `website` service in the server's `docker-compose.prod.yml`: `image: ghcr.io/mohammadrstm/id-indetails-website:${WEBSITE_TAG}`, on the same network as the `api` service, read-only with a `/tmp` tmpfs.
+- A Caddy site for the website's domain, forwarding to `website:8080`.
+- If the website's nginx reaches the API, its network must be in the API's `Proxy:KnownNetworks`, so the API's rate limits see visitors rather than nginx.
+- The repository's `production` environment with the same secrets as the backend's deploy (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`) and, if it differs, the `DEPLOY_PATH` variable (default `/opt/id-indetails`).
 
 ## Assets and licences
 
