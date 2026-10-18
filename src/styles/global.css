@@ -87,6 +87,15 @@ img {
   height: auto;
 }
 
+/* Photos that wait to be fully loaded (LoadedImage) fade in rather than appearing a band at a time. */
+img[data-loaded] {
+  transition: opacity 0.4s ease;
+}
+
+img[data-loaded='false'] {
+  opacity: 0;
+}
+
 ::selection {
   background: rgba(61, 139, 255, 0.32);
 }
@@ -256,11 +265,13 @@ img {
 
 /*
  * A project opens scrolled down by the header's height, so its hero (and the
- * globe behind it) grows by that much to still fill the whole screen.
+ * globe behind it) is the screen's height plus the header: after the scroll
+ * it fills the screen exactly, even on a window shorter than the overview's
+ * minimum height.
  */
 .explorer[data-view='project'] .explorer__hero,
 .explorer[data-view='project'] .explorer__stage {
-  height: calc(var(--hero-h) + var(--header-h));
+  height: calc(100svh + var(--header-h));
 }
 
 .explorer__strip {
@@ -315,10 +326,13 @@ img {
 .dock {
   --dock-margin: clamp(20px, 3.5vh, 40px);
   position: absolute;
-  /* The page scrolls the header out of sight when a project opens, so these equal gaps centre the photo on screen. */
+  /*
+   * The page scrolls the header out of sight when a project opens, so starting just below it and taking the
+   * screen's height less two margins centres the photo on screen, however short the window.
+   */
   top: calc(var(--header-h) + var(--dock-margin));
   right: var(--gutter);
-  bottom: var(--dock-margin);
+  height: calc(100svh - 2 * var(--dock-margin));
   width: var(--dock-w);
   overflow: hidden;
   border-radius: 3px;

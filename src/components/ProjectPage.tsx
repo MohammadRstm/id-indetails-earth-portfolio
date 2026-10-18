@@ -1,6 +1,7 @@
 import { projectStatusLabel, projectTypeLabel, type Project, type ProjectImage } from '../data/project';
 import { formatCoordinates } from '../lib/geo';
 import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
+import { LoadedImage } from './LoadedImage';
 import { ScrollLink } from './ScrollLink';
 
 interface ProjectHeadingProps {
@@ -47,7 +48,7 @@ interface ProjectPageProps {
 function Photo({ image, className }: { image: ProjectImage; className: string }) {
   return (
     <figure className={className}>
-      <img src={image.src} alt={image.alt} loading="lazy" decoding="async" />
+      <LoadedImage src={image.src} alt={image.alt} loading="lazy" decoding="async" />
     </figure>
   );
 }
