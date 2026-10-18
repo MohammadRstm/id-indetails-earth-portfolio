@@ -90,12 +90,8 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
         </dl>
       </div>
 
-      {project.gallery.map((image, index) => (
-        <Photo
-          key={image.src}
-          image={image}
-          className={index === 0 ? 'project-page__photo project-page__photo--wide' : 'project-page__photo'}
-        />
+      {project.gallery.map((image) => (
+        <Photo key={image.src} image={image} className="project-page__photo" />
       ))}
 
       <div className="project-page__credits">

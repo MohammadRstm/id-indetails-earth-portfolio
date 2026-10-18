@@ -678,8 +678,17 @@ img {
   grid-column: 1 / -1;
 }
 
+/*
+ * Every photo on a project page has the same shape and size: as wide as the
+ * page allows, but never taller than the screen (less a margin), and centred.
+ */
 .project-page__hero,
 .project-page__photo {
+  --photo-margin: clamp(24px, 5vh, 56px);
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, calc((100svh - 2 * var(--photo-margin)) * 3 / 2));
+  aspect-ratio: 3 / 2;
   overflow: hidden;
   border-radius: 3px;
   background: var(--bg-raised);
@@ -692,20 +701,13 @@ img {
   object-fit: cover;
 }
 
+/* On wide screens the photo beside the globe already shows it. */
 .project-page__hero {
   display: none;
-  aspect-ratio: 21 / 9;
 }
 
 .project-page__photo {
-  grid-column: 4 / -1;
-  aspect-ratio: 3 / 2;
-  margin-top: clamp(24px, 4vw, 56px);
-}
-
-.project-page__photo--wide {
-  grid-column: 1 / -1;
-  aspect-ratio: 16 / 9;
+  margin-top: var(--photo-margin);
 }
 
 .project-page__intro {
@@ -1309,13 +1311,6 @@ img {
 
   .project-page__hero {
     display: block;
-    aspect-ratio: 4 / 3;
-  }
-
-  .project-page__photo,
-  .project-page__photo--wide {
-    grid-column: 1 / -1;
-    aspect-ratio: 4 / 3;
   }
 
   .project-page__intro {
