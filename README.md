@@ -1,6 +1,6 @@
 # ID-Indetails project globe
 
-A 3D Earth landing page for ID-Indetails, an architecture studio. A grey dotted globe sits beside a slowly drifting strip of project photographs; as each project passes the centre of the strip, the globe turns to its place. Opening a project slides the strip away and zooms the globe in until only its horizon remains, with the project's page below it. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, markers, routes and stars.
+A 3D Earth landing page for ID-Indetails, an architecture studio. A dark globe with country borders sits beside a slowly drifting strip of project photographs; as each project passes the centre of the strip, the globe turns to its place and that country's border glows cyan. Opening a project grows its photograph out of the strip into a panel on the right while the globe leans, moves left and zooms in on the place, with the project's page below. Two red points mark the studio's offices. Built with React, TypeScript, Vite and React Three Fiber, using custom GLSL shaders for the Earth, markers, routes and stars.
 
 All projects shown are illustrative: names, clients and details are invented, and the photographs are free-licence stock images credited on each project page.
 
@@ -42,7 +42,7 @@ src/
   globe/       Everything inside and around the 3D canvas
   components/  Page UI
   hooks/       Small React hooks
-  lib/         Pure helpers (geo maths, seeded random, WebGL check)
+  lib/         Pure helpers (geo maths, country outlines, seeded random, WebGL check)
   styles/      Global CSS
 ```
 
@@ -56,7 +56,7 @@ src/
 
 - `Explorer.tsx` is the page: the globe, the caption and controls, the strip, and the project page. It decides which view shows and keeps the globe, strip and address bar in step.
 - `ProjectStrip.tsx` is the endless strip. Its position is a number of cards (`offset`); the card nearest the centre is the current project. A `requestAnimationFrame` loop drifts it, settles it with a critically damped spring and writes transforms straight to the DOM; React re-renders only when a new card needs mounting. Vertical on wide screens, horizontal below 960 px.
-- `ProjectCaption.tsx` is the name, place and summary beside the strip; `ProjectPage.tsx` holds `ProjectHeading` (the title over the globe's close-up) and `ProjectPage` (the page below it).
+- `ProjectCaption.tsx` is the name, place and summary beside the strip. `ProjectDock.tsx` is the photograph held to the right of the globe on a project page; it grows out of the clicked card (its on-screen position is passed up from the strip) with the Web Animations API. `ProjectPage.tsx` holds `ProjectHeading` (the title over the globe's close-up) and `ProjectPage` (the page below it).
 - `SiteHeader.tsx`, `AboutSection.tsx`, `MotionToggle.tsx`, `ScrollLink.tsx` and `icons.tsx` are the rest of the page.
 
 **`src/globe`**
@@ -66,23 +66,26 @@ src/
 - `GlobeLayout.ts` carries the measured globe position and size from the DOM to the scene. When the layout cell changes (for example the whole hero becoming the frame as a project opens), the globe glides to it instead of jumping.
 - `framing.ts` places the camera. At zoom 0 the whole globe fills the layout cell; at zoom 1 the camera moves in and a lens shift puts the selected place just under the horizon, which curves across the top of the hero.
 - `GlobeController.ts` owns the orientation logic: drag with inertia, smooth focus transitions and the zoom (0 overview, 1 close-up). The close-up is switched on only while a project page is open; the zoom stays out while a turn has more than about 0.45 rad to go and moves in once the place is close. It takes time as an argument and has no React or three.js dependency. It still supports an automatic spin, which the page leaves off: the globe follows the strip instead.
-- `Earth.tsx` draws the planet in two passes over one sphere: the far hemisphere first, faintly, then the near side, which writes depth so markers and routes behind the planet stay hidden although the oceans are see-through. `shaders.ts` turns the land/sea mask into a grid of round dots in rows of equal latitude, each dot read once at its centre, and fades the grid to an even tone where the dots get too small to draw cleanly.
+- `Earth.tsx` draws the planet in two passes over one sphere: the far hemisphere first, faintly, then the near side, which writes depth so markers, borders and routes behind the planet stay hidden although the oceans are see-through. The land is a flat, dark tone from a land mask, kept dim so the project locations draw the eye. `shaders.ts` also adds the selected country's soft cyan glow from a highlight mask.
+- `CountryBorders.tsx` draws coastlines and land borders as thin grey lines (`LineSegments2` from three's examples, so they keep a set pixel width), and the selected country's outline in cyan. The glow around it is not a wide line, whose overlapping segments would flare at every joint, but a band the Earth shader finds in a texture holding the country and a blurred copy of it (`createHighlightTexture`).
+- `OfficeMarkers.tsx` draws the studios as still red dots; their "ID-Indetails" labels are DOM elements placed by the marker projector.
 - `MarkerBeacons.tsx` draws a small blue dot with two rippling rings for each place; the selected place is larger and brighter. `Routes.tsx` draws faint dashed great-circle arcs along a minimum spanning tree of the places (`minimumSpanningTree` in `lib/geo.ts`). Ripples and route flow stop when motion is paused or reduced (`effectUniforms.ts`).
 - `MarkerProjector.ts` places the invisible marker buttons over the dots once per rendered frame and hides those past the horizon.
 - `Dust.tsx` and `Starfield.tsx` are the particles around the globe and the stars behind it; `FallbackEarth.tsx` is the graticule globe shown if the mask cannot load.
-- `useEarthTextures.ts` loads the land/sea mask outside React Suspense so failure can be shown in the page, and disposes it on unmount.
+- `useCountryData.ts` loads the country outlines outside React Suspense so failure can be shown in the page, draws the land mask onto a canvas and disposes it on unmount. `lib/countries.ts` decodes the outlines, finds the country a place is in (with a nearest-outline fallback for islands too small for the map) and turns lines into segments on the sphere.
 
 **`src/hooks`** has `useProjects`, `useProjectRoute` (the project in the address bar), `useMediaQuery` (including reduced motion) and `useCrossfade`.
 
 ## Behaviour
 
-- **Landing.** The globe sits on the left, the strip on the right (below the globe on narrow screens), and the caption between them names the current project. The strip starts drifting straight away, about eight seconds per project, lingering as each card passes the centre; new projects arrive from the top. The globe turns to each project as it becomes current.
+- **Landing.** The globe sits on the left, the strip right beside it, and the caption on the far right names the current project (on narrow screens the strip runs sideways below the globe, with the caption under it). The selected project's country border glows cyan. The strip starts drifting straight away, about eight seconds per project, lingering as each card passes the centre; new projects arrive from the top. The globe turns to each project as it becomes current.
 - **Choosing.** The strip can be scrolled with the wheel or trackpad, dragged and flung; the Previous and Next buttons and the Left and Right arrow keys step through projects. After any of these the drift waits about six seconds, then carries on. It also waits while the mouse rests on the strip. The strip loops forever. The Pause button stops the drift and the ripples.
-- **Opening a project.** Clicking a card, a blue dot on the globe or View project opens that project. The strip slides off to the right and the caption fades, the globe glides to the centre of the screen, turns to the place and moves in until only its horizon is left, with the project's title over it. The project page follows below: photographs, the key facts, the brief, the design concept, materials, sustainability, credits, an enquiry prompt and the previous and next projects. Previous and next keep the close-up and turn the globe to the new place. All projects, the wordmark, Projects in the header or Escape go back; the globe zooms out and the strip returns at the same project.
+- **Opening a project.** Clicking a card, a blue dot on the globe or View project opens that project. The project's photograph grows out of its card into a panel on the right while the rest of the strip and the caption fade; the globe leans, glides into the space on the left, turns to the place and moves in until only its horizon is left, with the project's title over it. On narrow screens there is no room beside the globe, so the photograph opens the page below instead. The project page follows below: photographs, the key facts, the brief, the design concept, materials, sustainability, credits, an enquiry prompt and the previous and next projects. Previous and next keep the close-up and turn the globe to the new place. All projects, the wordmark, Projects in the header or Escape go back; the globe zooms out and the strip returns at the same project.
 - **Addresses.** Each project has its own address, `/projects/<id>`, but the page never reloads: opening and closing use the History API, so links can be shared and the browser's Back and Forward buttons move between the globe and a project with the same animations. Moving between projects replaces the entry, so Back always returns to the globe. An address for an unknown project falls back to the globe.
 - **Keyboard and screen readers.** The strip and the globe markers are pointer-only (`aria-hidden`, `tabIndex={-1}`); the caption's View project button and the Previous and Next buttons reach every project, and a live region announces the current one. The skip link jumps to those controls.
 - **Reduced motion.** With `prefers-reduced-motion` the strip does not drift and jumps instead of gliding, the globe jumps to each place and in and out of the close-up, the ripples are replaced by a still ring and the page transitions are near-instant.
-- Without WebGL 2 the globe is replaced by a notice and the strip and project pages keep working. If the land/sea mask fails to load, a graticule globe is shown with a notice.
+- Without WebGL 2 the globe is replaced by a notice and the strip and project pages keep working. If the country outlines fail to load, a graticule globe is shown with a notice.
+- **Offices.** Red points mark the studios in Beirut and Abidjan (`data/offices.ts`), each labelled ID-Indetails. They do not move and cannot be clicked.
 
 ## Hosting
 
@@ -90,7 +93,7 @@ Because project addresses are real paths (`/projects/alfama-lofts`), the web ser
 
 ## Assets and licences
 
-The land/sea mask in `public/textures` (`earth-water-4k.jpg`, `earth-water-2k.jpg`) was made from GEBCO bathymetry (`gebco_08_rev_bath_21600x10800.jpg`, from NASA's Blue Marble collection), thresholded at full resolution and united with blue pixels from Blue Marble Next Generation so shallow seas (Azov, North Sea) count as water. NASA imagery is in the public domain (credit: NASA Earth Observatory; Blue Marble by Reto Stöckli); the GEBCO-derived mask is credited to GEBCO.
+Country outlines come from Natural Earth (public domain) at 1:50m scale, via the `world-atlas` package (`countries-50m.json`, emitted as a static asset and fetched at runtime) and decoded with `topojson-client`.
 
 The project photographs in `public/projects` are free-licence images from Pexels (Pexels License), downloaded at reduced size. Each photograph's photographer and source page are recorded in `demoProjects.ts` and credited on its project page. The projects themselves are invented; the photographs do not show the buildings described.
 
@@ -98,7 +101,7 @@ The font is Archivo Variable, via `@fontsource-variable/archivo`, under the SIL 
 
 ## Testing
 
-`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useProjectRoute.ts` (reading and writing project addresses) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text and a credit, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
+`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useProjectRoute.ts` (reading and writing project addresses) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text and a credit, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
 
 ## Known limitations
 
