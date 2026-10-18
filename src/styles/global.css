@@ -303,6 +303,8 @@ img {
   border-radius: 3px;
   background: var(--bg-raised);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  /* The grow-in animation scales from the top-left corner. */
+  transform-origin: 0 0;
   pointer-events: auto;
 }
 
@@ -546,13 +548,13 @@ img {
   animation: rise-in 0.9s var(--ease-out) 0.6s both;
 }
 
-/* Keeps the title readable where it crosses the dots of the planet. */
+/* Keeps the title readable if the planet's edge reaches up behind it. */
 .heading::before {
   content: '';
   position: absolute;
-  inset: auto 0 0;
-  height: 58%;
-  background: linear-gradient(to top, rgba(10, 10, 11, 0.92) 0%, rgba(10, 10, 11, 0.55) 45%, rgba(10, 10, 11, 0) 100%);
+  inset: 0 0 auto;
+  height: 55%;
+  background: linear-gradient(to bottom, rgba(10, 10, 11, 0.85) 0%, rgba(10, 10, 11, 0.5) 55%, rgba(10, 10, 11, 0) 100%);
   z-index: -1;
 }
 
@@ -577,10 +579,12 @@ img {
   border-color: var(--accent);
 }
 
+/* Top left, above the planet rising from the bottom-left corner. */
 .heading__body {
   grid-column: 1;
-  grid-row: 3;
-  align-self: end;
+  grid-row: 2;
+  align-self: start;
+  margin-top: clamp(24px, 5vh, 56px);
 }
 
 .heading__eyebrow {

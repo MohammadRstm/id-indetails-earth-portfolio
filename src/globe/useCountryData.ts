@@ -59,16 +59,15 @@ function drawLandMask(countries: CountryShape[], width: number): HTMLCanvasEleme
   return canvas;
 }
 
-const HIGHLIGHT_WIDTH = 1024;
+/** Small on purpose: it is redrawn whenever the selected country changes, and filtering smooths it on the globe. */
+const HIGHLIGHT_WIDTH = 512;
 /** How far the glow spreads either side of the border, in mask pixels (about 1.4° of longitude). */
-const HIGHLIGHT_BLUR_PX = 4;
+const HIGHLIGHT_BLUR_PX = 2;
 
-/**
- * One country as a texture for the border glow: red is the country itself,
- * green is the same shape blurred, so the shader can find a soft band along
- * the border without drawing overlapping lines.
- */
-export function createHighlightTexture(country: CountryShape): Texture {
+/** Drawn masks by country id, so going back to a country costs nothing. */
+const highlightMasks = new Map<string, HTMLCanvasElement>();
+
+function drawHighlightMask(country: CountryShape): HTMLCanvasElement {
   const { canvas, context } = createCanvas(HIGHLIGHT_WIDTH);
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -79,6 +78,20 @@ export function createHighlightTexture(country: CountryShape): Texture {
   context.filter = 'none';
   context.fillStyle = '#f00';
   fillCountries(context, [country]);
+  return canvas;
+}
+
+/**
+ * One country as a texture for the border glow: red is the country itself,
+ * green is the same shape blurred, so the shader can find a soft band along
+ * the border without drawing overlapping lines.
+ */
+export function createHighlightTexture(country: CountryShape): Texture {
+  let canvas = highlightMasks.get(country.id);
+  if (!canvas) {
+    canvas = drawHighlightMask(country);
+    highlightMasks.set(country.id, canvas);
+  }
   const texture = new CanvasTexture(canvas);
   texture.wrapS = RepeatWrapping;
   return texture;

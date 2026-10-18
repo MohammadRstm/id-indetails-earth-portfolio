@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { Project } from '../data/project';
 
-const GROW_MS = 900;
+const GROW_MS = 1000;
 const FADE_MS = 450;
 
 interface ProjectDockProps {
@@ -15,6 +15,10 @@ interface ProjectDockProps {
  * The project's photograph, held to the right of the globe's close-up. When
  * the project was picked from the strip, the photo grows out of its card into
  * place; otherwise it fades in.
+ *
+ * The growth animates only `transform`, which the browser runs on the GPU
+ * compositor: it stays smooth while the page is busy setting up the project
+ * view, where animating the size directly would stall and then jump.
  */
 export function ProjectDock({ project, origin, reducedMotion }: ProjectDockProps) {
   const dockRef = useRef<HTMLElement>(null);
@@ -22,31 +26,25 @@ export function ProjectDock({ project, origin, reducedMotion }: ProjectDockProps
   // The parent remounts the dock for each project, so this runs as each photo first appears.
   useLayoutEffect(() => {
     const dock = dockRef.current;
-    const container = dock?.offsetParent;
-    if (!dock || !(container instanceof HTMLElement) || reducedMotion) return;
+    if (!dock || !dock.offsetParent || reducedMotion) return;
     if (!origin) {
       dock.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-out' });
       return;
     }
-    const box = container.getBoundingClientRect();
-    const from = {
-      left: `${origin.left - box.left}px`,
-      top: `${origin.top - box.top}px`,
-      width: `${origin.width}px`,
-      height: `${origin.height}px`,
-    };
-    const to = {
-      left: `${dock.offsetLeft}px`,
-      top: `${dock.offsetTop}px`,
-      width: `${dock.offsetWidth}px`,
-      height: `${dock.offsetHeight}px`,
-    };
-    dock.animate([from, to], { duration: GROW_MS, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+    // Start as a copy of the card: scaled down uniformly (so the photo is never stretched) to cover it, centred on it.
+    const final = dock.getBoundingClientRect();
+    const scale = Math.max(origin.width / final.width, origin.height / final.height);
+    const x = origin.left + origin.width / 2 - (final.left + (final.width * scale) / 2);
+    const y = origin.top + origin.height / 2 - (final.top + (final.height * scale) / 2);
+    dock.animate([{ transform: `translate(${x}px, ${y}px) scale(${scale})` }, { transform: 'none' }], {
+      duration: GROW_MS,
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+    });
   }, [origin, reducedMotion]);
 
   return (
     <figure ref={dockRef} className="dock">
-      <img src={project.hero.src} alt={project.hero.alt} decoding="async" />
+      <img src={project.hero.src} alt={project.hero.alt} decoding="sync" />
     </figure>
   );
 }

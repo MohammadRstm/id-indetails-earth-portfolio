@@ -15,8 +15,8 @@ export const PITCH_LIMIT = 60 * DEG;
 const ZOOM_SMOOTH_TIME = 0.8;
 /** While a focus turn has more than this left to travel, the camera stays pulled back. */
 const ZOOM_OUT_DISTANCE = 0.45;
-/** Angle, in radians, between the screen centre and the focused place once fully zoomed in. */
-export const ZOOM_PITCH_BIAS = 0.47;
+/** Angle, in radians, the focused place is tipped away from the planet's centre once fully zoomed in, towards its edge. */
+export const ZOOM_PITCH_BIAS = 0.6;
 /** How much a drag turns the globe less when fully zoomed in (the surface is larger on screen). */
 const ZOOM_DRAG_DAMPING = 0.65;
 

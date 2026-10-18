@@ -74,18 +74,57 @@ function ringContains(ring: Ring, lng: number, lat: number): boolean {
   return inside;
 }
 
+interface PreparedPolygon {
+  rings: Ring[];
+  minLng: number;
+  maxLng: number;
+  minLat: number;
+  maxLat: number;
+}
+
+/** Unwrapped rings and the outer ring's bounds, worked out once per polygon: lookups run every time the project changes. */
+const prepared = new WeakMap<Ring[], PreparedPolygon>();
+
+function prepare(polygon: Ring[]): PreparedPolygon {
+  let result = prepared.get(polygon);
+  if (!result) {
+    const rings = polygon.map(unwrapRing);
+    const lngs = rings[0].map(([lng]) => lng);
+    const lats = rings[0].map(([, lat]) => lat);
+    result = { rings, minLng: Math.min(...lngs), maxLng: Math.max(...lngs), minLat: Math.min(...lats), maxLat: Math.max(...lats) };
+    prepared.set(polygon, result);
+  }
+  return result;
+}
+
 /** Even-odd test in longitude/latitude, trying the point a turn either side for rings that cross the antimeridian. */
 export function polygonContains(polygon: Ring[], lng: number, lat: number): boolean {
-  const rings = polygon.map(unwrapRing);
-  return [lng, lng - 360, lng + 360].some((x) => rings.filter((ring) => ringContains(ring, x, lat)).length % 2 === 1);
+  const { rings, minLng, maxLng, minLat, maxLat } = prepare(polygon);
+  if (lat < minLat || lat > maxLat) return false;
+  return [lng, lng - 360, lng + 360].some(
+    (x) => x >= minLng && x <= maxLng && rings.filter((ring) => ringContains(ring, x, lat)).length % 2 === 1,
+  );
 }
+
+const found = new WeakMap<CountryShape[], Map<string, CountryShape | null>>();
 
 /**
  * The country a place lies in. Small islands are missing at this map scale,
  * so a place outside every polygon falls back to the country with the
- * nearest outline point.
+ * nearest outline point. Answers are remembered per place.
  */
 export function findCountry(countries: CountryShape[], lng: number, lat: number): CountryShape | null {
+  let cache = found.get(countries);
+  if (!cache) {
+    cache = new Map();
+    found.set(countries, cache);
+  }
+  const key = `${lng},${lat}`;
+  if (!cache.has(key)) cache.set(key, searchCountry(countries, lng, lat));
+  return cache.get(key) ?? null;
+}
+
+function searchCountry(countries: CountryShape[], lng: number, lat: number): CountryShape | null {
   const containing = countries.find((country) => country.polygons.some((polygon) => polygonContains(polygon, lng, lat)));
   if (containing) return containing;
 
