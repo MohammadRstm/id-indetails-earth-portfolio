@@ -69,19 +69,12 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
     [projects, projectOpen, currentId, open],
   );
 
-  // Where the chosen project's photo was on screen, so the photo can grow from there into its place on the project page.
-  const [dockOrigin, setDockOrigin] = useState<{ id: string; rect: DOMRect } | null>(null);
-
   const openProject = useCallback(
-    (id: string, origin?: DOMRect) => {
-      if (!projectOpen) {
-        const card = origin ?? document.querySelector('.explorer__strip .strip__card[data-current="true"]')?.getBoundingClientRect();
-        setDockOrigin(card ? { id, rect: card } : null);
-      }
+    (id: string) => {
       setSelectedId(id);
       open(id);
     },
-    [open, projectOpen],
+    [open],
   );
 
   const selectGroup = useCallback(
@@ -157,7 +150,7 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
             running={!projectOpen}
             reducedMotion={reducedMotion}
             onActiveChange={(next) => setSelectedId(projects[next].id)}
-            onOpen={(next, rect) => openProject(projects[next].id, rect)}
+            onOpen={(next) => openProject(projects[next].id)}
           />
         </div>
 
@@ -175,12 +168,7 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
         </section>
 
         {projectOpen && (
-          <ProjectDock
-            key={project.id}
-            project={project}
-            origin={dockOrigin?.id === project.id ? dockOrigin.rect : null}
-            reducedMotion={reducedMotion}
-          />
+          <ProjectDock key={project.id} project={project} reducedMotion={reducedMotion} />
         )}
         {projectOpen && <ProjectHeading project={project} onBack={close} />}
       </div>

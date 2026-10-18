@@ -1,50 +1,36 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { Project } from '../data/project';
 
-const GROW_MS = 900;
-const FADE_MS = 450;
+/** Waits for the strip, and the clicked photo with it, to fade out first. */
+const FADE_DELAY_MS = 300;
+const FADE_MS = 700;
 
 interface ProjectDockProps {
   project: Project;
-  /** Where the photo was on screen when the project was chosen (its card in the strip), if anywhere. */
-  origin: DOMRect | null;
   reducedMotion: boolean;
 }
 
 /**
- * The project's photograph, held to the right of the globe's close-up. When
- * the project was picked from the strip, the photo grows out of its card into
- * place; otherwise it fades in.
- *
- * The growth animates only `transform`, which the browser runs on the GPU
- * compositor: it stays smooth while the page is busy setting up the project
- * view, where animating the size directly would stall and then jump.
+ * The project's photograph, held to the right of the globe's close-up. It
+ * fades in where it belongs once the strip has faded out.
  */
-export function ProjectDock({ project, origin, reducedMotion }: ProjectDockProps) {
+export function ProjectDock({ project, reducedMotion }: ProjectDockProps) {
   const dockRef = useRef<HTMLElement>(null);
 
   // The parent remounts the dock for each project, so this runs as each photo first appears.
   useLayoutEffect(() => {
     const dock = dockRef.current;
-    if (!dock || !dock.offsetParent || reducedMotion) return;
-    if (!origin) {
-      const fade = dock.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-out' });
-      return () => fade.cancel();
-    }
-    // Start as a copy of the card: scaled down uniformly (so the photo is never stretched) to cover it, centred on it.
-    const final = dock.getBoundingClientRect();
-    const scale = Math.max(origin.width / final.width, origin.height / final.height);
-    const x = origin.left + origin.width / 2 - (final.left + (final.width * scale) / 2);
-    const y = origin.top + origin.height / 2 - (final.top + (final.height * scale) / 2);
-    // Eases out: it leaves the card at once and settles gently, rather than lingering at card size first.
-    const grow = dock.animate([{ transform: `translate(${x}px, ${y}px) scale(${scale})` }, { transform: 'none' }], {
-      duration: GROW_MS,
+    if (!dock || reducedMotion) return;
+    // Only opacity and transform, which the GPU compositor animates smoothly while the page sets up the project view.
+    const fade = dock.animate([{ opacity: 0, transform: 'scale(0.985)' }, { opacity: 1, transform: 'none' }], {
+      duration: FADE_MS,
+      delay: FADE_DELAY_MS,
       easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+      fill: 'backwards',
     });
-    // Cancelling on cleanup matters: a re-run (React runs effects twice in development) must measure the photo
-    // in its final place, not part-way through this animation, or it starts a do-nothing animation over this one.
-    return () => grow.cancel();
-  }, [origin, reducedMotion]);
+    // React runs effects twice in development; without this the second run would stack a second fade.
+    return () => fade.cancel();
+  }, [reducedMotion]);
 
   return (
     // The card's small photo sits underneath, already loaded, so the dock is never blank while the large one decodes.

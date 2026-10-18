@@ -253,10 +253,10 @@ img {
   pointer-events: auto;
   transition:
     transform 0.7s var(--ease-out),
-    opacity 0.5s ease;
+    opacity 0.35s ease;
 }
 
-/* The chosen card's photo grows out of the strip; the rest of the strip falls away. */
+/* The strip, the clicked photo with it, fades out quickly; the photo then fades in beside the globe. */
 .explorer[data-view='project'] .explorer__strip {
   opacity: 0;
   transform: scale(0.92);
@@ -303,8 +303,6 @@ img {
   border-radius: 3px;
   background: var(--bg-raised) center / cover no-repeat;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-  /* The grow-in animation scales from the top-left corner. */
-  transform-origin: 0 0;
   pointer-events: auto;
 }
 
