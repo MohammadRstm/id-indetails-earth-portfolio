@@ -38,7 +38,7 @@ export const earthFragmentShader = /* glsl */ `
   varying vec3 vPosW;
 
   // Kept dark so the project locations, not the land, draw the eye.
-  const vec3 LAND = vec3(0.105, 0.11, 0.122);
+  const vec3 LAND = vec3(0.06, 0.063, 0.07);
   const vec3 OCEAN = vec3(0.028, 0.03, 0.034);
   const vec3 GLOW = vec3(0.24, 0.8, 1.0);
 
