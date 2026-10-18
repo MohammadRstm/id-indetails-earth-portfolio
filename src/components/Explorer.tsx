@@ -90,11 +90,14 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
     return () => onHomeChange(null);
   }, [close, onHomeChange]);
 
-  // Each view starts at the top: the globe's horizon when a project opens, the globe itself on the way back.
-  // From far down a long page, a smooth scroll would only sweep past empty space, so it jumps instead.
+  // The globe view starts at the very top. A project starts just past the header, so the header scrolls out of
+  // sight and the whole photograph shows. From far down a long page, a smooth scroll would only sweep past empty
+  // space, so it jumps instead.
   useEffect(() => {
-    const near = window.scrollY < window.innerHeight * 1.5;
-    window.scrollTo({ top: 0, behavior: near && !reducedMotion ? 'smooth' : 'auto' });
+    const header = document.querySelector<HTMLElement>('.site-header');
+    const top = route.openId !== null && header ? header.offsetHeight : 0;
+    const near = Math.abs(window.scrollY - top) < window.innerHeight * 1.5;
+    window.scrollTo({ top, behavior: near && !reducedMotion ? 'smooth' : 'auto' });
   }, [route.openId, reducedMotion]);
 
   useEffect(() => {
