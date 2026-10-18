@@ -1,0 +1,101 @@
+# Checks every pull request to master, and master after each merge. Nothing is published or deployed here: that is
+# the manual Publish workflow. Pushes with [skip ci] in the commit message don't run it.
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Type-check, lint and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # The Dockerfile's check stage: npm run typecheck, lint and test, on the same Node as the image build.
+      - name: Type-check, lint and run the tests
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: check
+          push: false
+          cache-from: type=gha,scope=website
+          cache-to: type=gha,mode=max,scope=website
+
+  image:
+    name: Docker image
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the image (not pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: runtime
+          load: true
+          push: false
+          tags: id-indetails-website:ci
+          cache-from: type=gha,scope=website
+
+      # Runs the image the way the server does (read-only, no capabilities) and checks what visitors get.
+      - name: Smoke-test the image
+        run: |
+          fail() { echo "::error::$1"; docker logs website 2>&1 | tail -50 || true; exit 1; }
+          docker run -d --name website -p 8080:8080 --read-only --tmpfs /tmp \
+            --cap-drop ALL --security-opt no-new-privileges id-indetails-website:ci
+          for i in $(seq 1 30); do curl -fs -o /dev/null http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -fs -o /dev/null http://127.0.0.1:8080/healthz || fail "the site isn't healthy"
+          [ "$(docker exec website id -u)" != "0" ] || fail "nginx runs as root"
+
+          status() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
+          for page in / /projects /projects/alfama-lofts /studio /contact /anything-else; do
+            [ "$(status "$page")" = "200" ] || fail "$page doesn't answer 200"
+          done
+          curl -fs http://127.0.0.1:8080/projects/alfama-lofts | grep -q '<div id="root">' || fail "a page address doesn't get the app"
+          [ "$(status /projects/alfama-lofts/hero.jpg)" = "200" ] || fail "a project photo isn't served"
+          [ "$(status /assets/does-not-exist.js)" = "404" ] || fail "a missing bundle doesn't answer 404"
+          [ "$(status /api/projects)" = "404" ] || fail "the private API is reachable through the website"
+
+          headers=$(curl -fsI http://127.0.0.1:8080/)
+          for header in Content-Security-Policy X-Content-Type-Options X-Frame-Options Referrer-Policy; do
+            grep -qi "^$header:" <<< "$headers" || fail "the page has no $header header"
+          done
+          grep -qi '^Cache-Control: no-cache' <<< "$headers" || fail "the page may be cached"
+          bundle=$(curl -fs http://127.0.0.1:8080/ | grep -o '/assets/[^"]*\.js' | head -1)
+          [ -n "$bundle" ] || fail "the page loads no bundle"
+          curl -fsI "http://127.0.0.1:8080$bundle" | grep -qi '^Cache-Control:.*immutable' || fail "bundles aren't cached"
+          curl -fsI "http://127.0.0.1:8080$bundle" | grep -qi '^X-Content-Type-Options:' || fail "bundles lose the security headers"
+
+      - name: Scan the image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: id-indetails-website:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
