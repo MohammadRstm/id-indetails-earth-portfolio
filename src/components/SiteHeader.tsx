@@ -1,5 +1,5 @@
 import type { Page } from '../hooks/useSiteRoute';
-import { EmblemIcon } from './icons';
+import { LogoMark } from './icons';
 import { PageLink } from './PageLink';
 
 const NAV: { page: Page; label: string }[] = [
@@ -18,7 +18,7 @@ export function SiteHeader({ current, onNavigate }: SiteHeaderProps) {
   return (
     <header className="site-header">
       <PageLink page="home" className="wordmark" onNavigate={onNavigate} aria-label="ID-Indetails, all projects">
-        <EmblemIcon className="wordmark__emblem" />
+        <LogoMark className="wordmark__logo" />
         <span className="wordmark__name">ID-Indetails</span>
       </PageLink>
       <nav className="site-nav" aria-label="Site">

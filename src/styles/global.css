@@ -167,8 +167,11 @@ img {
   text-decoration: none;
 }
 
-.wordmark__emblem {
-  color: var(--accent);
+.wordmark__logo {
+  flex: none;
+  /* A faint ring keeps the black tile's rounded square visible on the dark page. */
+  border-radius: 21.5%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .wordmark__name {
@@ -251,6 +254,15 @@ img {
   margin-right: calc(var(--dock-w) + var(--dock-gap));
 }
 
+/*
+ * A project opens scrolled down by the header's height, so its hero (and the
+ * globe behind it) grows by that much to still fill the whole screen.
+ */
+.explorer[data-view='project'] .explorer__hero,
+.explorer[data-view='project'] .explorer__stage {
+  height: calc(var(--hero-h) + var(--header-h));
+}
+
 .explorer__strip {
   grid-column: 2;
   grid-row: 1;
@@ -301,10 +313,12 @@ img {
 
 /* The project's photograph, held to the right of the globe's close-up. */
 .dock {
+  --dock-margin: clamp(20px, 3.5vh, 40px);
   position: absolute;
-  top: calc(var(--header-h) + 8px);
+  /* The page scrolls the header out of sight when a project opens, so these equal gaps centre the photo on screen. */
+  top: calc(var(--header-h) + var(--dock-margin));
   right: var(--gutter);
-  bottom: 28px;
+  bottom: var(--dock-margin);
   width: var(--dock-w);
   overflow: hidden;
   border-radius: 3px;

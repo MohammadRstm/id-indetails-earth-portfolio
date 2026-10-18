@@ -1,6 +1,6 @@
 import { socialLinks } from '../data/site';
 import type { Page } from '../hooks/useSiteRoute';
-import { EmblemIcon } from './icons';
+import { LogoMark } from './icons';
 import { PageLink } from './PageLink';
 
 export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void }) {
@@ -8,7 +8,7 @@ export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void })
     <footer className="site-footer">
       <div className="site-footer__top">
         <div className="site-footer__brand">
-          <EmblemIcon className="wordmark__emblem" />
+          <LogoMark className="wordmark__logo" />
           <span className="wordmark__name">ID-Indetails</span>
         </div>
         <nav aria-label="Social media">

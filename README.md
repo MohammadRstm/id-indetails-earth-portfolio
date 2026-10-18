@@ -103,6 +103,8 @@ The project photographs in `public/projects` are free-licence images from Pexels
 
 The font is Archivo Variable, via `@fontsource-variable/archivo`, under the SIL Open Font License 1.1.
 
+The logo is redrawn as vector shapes from the studio's PNG mark, so it stays sharp at any size: `LogoMark` in `components/icons.tsx` (header and footer) and `public/favicon.svg` (the browser tab) hold the same shapes.
+
 ## Testing
 
 `npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address), `lib/contactForm.ts` (the form's checks), `data/contactSource.ts` (that it reports not being connected) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text and a credit, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.

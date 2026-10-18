@@ -63,11 +63,15 @@ export const CloseIcon = (props: IconProps) => (
   </svg>
 );
 
-/** The wordmark's emblem: a meridian ring with a single location point. */
-export const EmblemIcon = (props: IconProps) => (
-  <svg {...base} viewBox="0 0 24 24" width={22} height={22} strokeWidth={1.3} {...props}>
-    <circle cx="12" cy="12" r="9.25" />
-    <ellipse cx="12" cy="12" rx="4.2" ry="9.25" />
-    <circle cx="15.6" cy="8.4" r="1.7" fill="currentColor" stroke="none" />
+/** The ID-Indetails logo: a split white "0" on a black rounded square. Also `public/favicon.svg`. */
+export const LogoMark = (props: IconProps) => (
+  <svg viewBox="0 0 1024 1024" width={28} height={28} aria-hidden focusable={false} {...props}>
+    <rect width="1024" height="1024" rx="220" fill="#000" />
+    <path
+      fill="#fff"
+      fillRule="evenodd"
+      d="M291 340A221 245 0 0 1 733 340V685A221 243 0 0 1 291 685ZM435 320A77 77 0 0 1 589 320V702A77 77 0 0 1 435 702Z"
+    />
+    <path fill="#000" d="M495 80h33v180h-33ZM495 760h33v190h-33Z" />
   </svg>
 );
