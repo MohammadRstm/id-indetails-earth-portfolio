@@ -26,12 +26,13 @@ describe('demoProjects', () => {
     }
   });
 
-  it('uses known types and statuses and sensible figures', () => {
-    for (const { id, type, status, year, areaSqm } of demoProjects) {
+  it('fills in every field with a known type and status', () => {
+    for (const { id, type, status, year, client, description } of demoProjects) {
       expect(Object.keys(projectTypeLabel), id).toContain(type);
       expect(Object.keys(projectStatusLabel), id).toContain(status);
       expect(Number.isInteger(year), id).toBe(true);
-      expect(areaSqm, id).toBeGreaterThan(0);
+      expect(client.trim(), id).not.toBe('');
+      expect(description.trim(), id).not.toBe('');
     }
   });
 

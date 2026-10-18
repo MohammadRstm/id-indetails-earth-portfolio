@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Project } from '../data/project';
 import { GlobeStage } from '../globe/GlobeStage';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
-import { useProjectRoute } from '../hooks/useProjectRoute';
 import { groupByLocation } from '../lib/geo';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { MotionToggle } from './MotionToggle';
@@ -11,15 +10,18 @@ import { ProjectDock } from './ProjectDock';
 import { ProjectHeading, ProjectPage } from './ProjectPage';
 import { ProjectStrip } from './ProjectStrip';
 
-const SITE_TITLE = 'ID-Indetails';
-
 const isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 
 interface ExplorerProps {
   projects: Project[];
-  /** Registers the explorer's way back to the overview, used by the site header. */
-  onHomeChange: (goHome: (() => void) | null) => void;
+  /** The project whose page is open, from the address bar; null on the globe overview. */
+  openId: string | null;
+  /** False while another page (Studio, Contact) is showing: the explorer stays mounted but hidden and idle. */
+  active: boolean;
+  onOpenProject: (id: string) => void;
+  onCloseProject: () => void;
+  onContact: () => void;
 }
 
 /**
@@ -28,37 +30,33 @@ interface ExplorerProps {
  * slides the strip away, turns the globe to the place and moves in until
  * only its horizon remains above the project's page.
  */
-export function Explorer({ projects, onHomeChange }: ExplorerProps) {
+export function Explorer({ projects, openId, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
   const reducedMotion = usePrefersReducedMotion();
   const narrow = useMediaQuery('(max-width: 959px)');
   const groups = useMemo(() => groupByLocation(projects), [projects]);
-  const isKnown = useCallback((id: string) => projects.some((project) => project.id === id), [projects]);
-  const route = useProjectRoute(isKnown);
-  const [selectedId, setSelectedId] = useState(() => route.openId ?? projects[0].id);
+  const [selectedId, setSelectedId] = useState(() => openId ?? projects[0].id);
   const [motionOn, setMotionOn] = useState(true);
   const frameRef = useRef<HTMLDivElement>(null);
 
   // Whatever project was open stays selected afterwards, so the strip comes back at the same card.
-  const [lastOpenId, setLastOpenId] = useState(route.openId);
-  if (route.openId !== lastOpenId) {
-    setLastOpenId(route.openId);
-    if (route.openId !== null) setSelectedId(route.openId);
+  const [lastOpenId, setLastOpenId] = useState(openId);
+  if (openId !== lastOpenId) {
+    setLastOpenId(openId);
+    if (openId !== null) setSelectedId(openId);
   }
 
-  const projectOpen = route.openId !== null;
-  const currentId = route.openId ?? selectedId;
+  const projectOpen = openId !== null;
+  const currentId = openId ?? selectedId;
   const index = Math.max(0, projects.findIndex((project) => project.id === currentId));
   const project = projects[index];
   const group = groups.find((candidate) => candidate.projects.includes(project)) ?? groups[0];
   const at = (offset: number) => projects[(index + offset + projects.length) % projects.length];
 
-  const { open, close } = route;
-
   const step = useCallback(
     (direction: 1 | -1) => {
       if (projectOpen) {
         const from = projects.findIndex((item) => item.id === currentId);
-        open(projects[(from + direction + projects.length) % projects.length].id);
+        onOpenProject(projects[(from + direction + projects.length) % projects.length].id);
         return;
       }
       setSelectedId((current) => {
@@ -66,15 +64,15 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
         return projects[(from + direction + projects.length) % projects.length].id;
       });
     },
-    [projects, projectOpen, currentId, open],
+    [projects, projectOpen, currentId, onOpenProject],
   );
 
   const openProject = useCallback(
     (id: string) => {
       setSelectedId(id);
-      open(id);
+      onOpenProject(id);
     },
-    [open],
+    [onOpenProject],
   );
 
   const selectGroup = useCallback(
@@ -86,37 +84,19 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
   );
 
   useEffect(() => {
-    onHomeChange(close);
-    return () => onHomeChange(null);
-  }, [close, onHomeChange]);
-
-  // The globe view starts at the very top. A project starts just past the header, so the header scrolls out of
-  // sight and the whole photograph shows. From far down a long page, a smooth scroll would only sweep past empty
-  // space, so it jumps instead.
-  useEffect(() => {
-    const header = document.querySelector<HTMLElement>('.site-header');
-    const top = route.openId !== null && header ? header.offsetHeight : 0;
-    const near = Math.abs(window.scrollY - top) < window.innerHeight * 1.5;
-    window.scrollTo({ top, behavior: near && !reducedMotion ? 'smooth' : 'auto' });
-  }, [route.openId, reducedMotion]);
-
-  useEffect(() => {
-    document.title = projectOpen ? `${project.title} · ${SITE_TITLE}` : `${SITE_TITLE} · Architecture`;
-  }, [projectOpen, project]);
-
-  useEffect(() => {
+    if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isTypingTarget(event.target)) return;
       if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();
         step(event.key === 'ArrowRight' ? 1 : -1);
       } else if (event.key === 'Escape' && projectOpen) {
-        close();
+        onCloseProject();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [step, projectOpen, close]);
+  }, [active, step, projectOpen, onCloseProject]);
 
   // Warm the cache with the current project's opening photo, so its page appears complete.
   useEffect(() => {
@@ -125,7 +105,7 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
   }, [project]);
 
   return (
-    <main className="explorer" id="top" data-view={projectOpen ? 'project' : 'overview'}>
+    <main className="explorer" id={active ? 'content' : undefined} hidden={!active} data-view={projectOpen ? 'project' : 'overview'}>
       <h1 className="visually-hidden">ID-Indetails architecture projects</h1>
       <div className="explorer__stage">
         <GlobeStage
@@ -150,7 +130,7 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
             activeIndex={index}
             axis={narrow ? 'x' : 'y'}
             drifting={motionOn && !reducedMotion}
-            running={!projectOpen}
+            running={active && !projectOpen}
             reducedMotion={reducedMotion}
             onActiveChange={(next) => setSelectedId(projects[next].id)}
             onOpen={(next) => openProject(projects[next].id)}
@@ -173,10 +153,12 @@ export function Explorer({ projects, onHomeChange }: ExplorerProps) {
         {projectOpen && (
           <ProjectDock key={project.id} project={project} reducedMotion={reducedMotion} />
         )}
-        {projectOpen && <ProjectHeading project={project} onBack={close} />}
+        {projectOpen && <ProjectHeading project={project} onBack={onCloseProject} />}
       </div>
 
-      {projectOpen && <ProjectPage project={project} previous={at(-1)} next={at(1)} onOpen={openProject} />}
+      {projectOpen && (
+        <ProjectPage project={project} previous={at(-1)} next={at(1)} onOpen={openProject} onContact={onContact} />
+      )}
 
       <p className="visually-hidden" aria-live="polite">
         {projectOpen

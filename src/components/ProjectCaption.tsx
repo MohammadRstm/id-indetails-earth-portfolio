@@ -32,7 +32,7 @@ export function ProjectCaption({ projects, project, onOpen }: ProjectCaptionProp
         {location.city}, {location.country}
       </p>
       <p className="caption__coords">{formatCoordinates(location.lat, location.lng)}</p>
-      <p className="caption__summary">{shown.summary}</p>
+      <p className="caption__summary">{shown.description}</p>
       <p className="caption__meta">
         <span>{shown.year}</span>
         <span aria-hidden="true">·</span>

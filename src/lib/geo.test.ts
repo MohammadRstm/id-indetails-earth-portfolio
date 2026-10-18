@@ -25,17 +25,10 @@ function project(id: string, lat: number, lng: number): Project {
     location: { city: id, country: 'Testland', lat, lng },
     year: 2024,
     client: 'Test client',
-    areaSqm: 100,
-    services: [],
-    summary: 'Test project',
-    brief: '',
-    concept: '',
-    materials: [],
-    sustainability: [],
+    description: 'Test project',
     thumbnail: image.src,
     hero: image,
     gallery: [],
-    team: [],
   };
 }
 

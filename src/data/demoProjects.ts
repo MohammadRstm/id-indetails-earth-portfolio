@@ -14,19 +14,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Lisbon', country: 'Portugal', lat: 38.7114, lng: -9.13 },
     year: 2023,
     client: 'Casa Tejo Development',
-    areaSqm: 4200,
-    services: ['Architecture', 'Heritage restoration', 'Interior design'],
-    summary: 'Twenty-four lofts inside a restored nineteenth-century warehouse on the slopes of the Alfama district.',
-    brief:
-      'Convert a listed warehouse into homes without losing the scale of its timber halls, and open the ground floor back to the street it had turned away from for decades.',
-    concept:
-      'The original pine trusses and lime walls were kept and exposed. New floors are hung as light steel mezzanines inside the old volume, so each loft reads as a room within a room, and a planted courtyard is cut through the centre to bring daylight down to the lowest flats.',
-    materials: ['Reclaimed pine', 'Lime render', 'Blackened steel', 'Lioz limestone'],
-    sustainability: [
-      'Over 80% of the original structure retained',
-      'Natural cross-ventilation through the central courtyard',
-      'Rainwater collected for courtyard planting',
-    ],
+    description:
+      'Twenty-four lofts inside a restored nineteenth-century warehouse on the slopes of the Alfama district. The original pine trusses and lime walls were kept and exposed. New floors are hung as light steel mezzanines inside the old volume, so each loft reads as a room within a room, and a planted courtyard is cut through the centre to bring daylight down to the lowest flats.',
     thumbnail: '/projects/alfama-lofts/thumb.jpg',
     hero: {
       src: '/projects/alfama-lofts/hero.jpg',
@@ -45,11 +34,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Masood Aslami', source: 'Pexels', url: 'https://www.pexels.com/photo/facade-of-lisbon-buildings-16549951/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Inês Carvalho' },
-      { role: 'Heritage consultant', name: 'Rui Monteiro' },
-      { role: 'Structural engineer', name: 'Atlântico Engenharia' },
-    ],
   },
   {
     id: 'atlas-riad-hotel',
@@ -59,19 +43,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Marrakech', country: 'Morocco', lat: 31.6295, lng: -7.9811 },
     year: 2022,
     client: 'Maison Atlas Hospitality',
-    areaSqm: 2900,
-    services: ['Architecture', 'Interior design', 'Landscape'],
-    summary: 'A nineteen-key boutique hotel built around three linked courtyards inside the medina walls.',
-    brief:
-      'Join three neighbouring riads into one hotel while keeping the quiet, inward-looking character that makes a riad feel private.',
-    concept:
-      'Each courtyard is given its own temperature and light: a shaded fountain court, an orange-tree garden and a rooftop pool terrace facing the Atlas mountains. Thick tadelakt walls and timber screens keep the rooms cool through the summer without heavy air conditioning.',
-    materials: ['Tadelakt plaster', 'Zellige tile', 'Cedar screens', 'Rammed earth'],
-    sustainability: [
-      'Passive cooling through thermal mass and shaded courtyards',
-      'Local craftsmen and materials sourced within 60 km',
-      'Greywater reused for garden irrigation',
-    ],
+    description:
+      'A nineteen-key boutique hotel built around three linked courtyards inside the medina walls. Each courtyard is given its own temperature and light: a shaded fountain court, an orange-tree garden and a rooftop pool terrace facing the Atlas mountains. Thick tadelakt walls and timber screens keep the rooms cool through the summer without heavy air conditioning.',
     thumbnail: '/projects/atlas-riad-hotel/thumb.jpg',
     hero: {
       src: '/projects/atlas-riad-hotel/hero.jpg',
@@ -90,11 +63,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Moussa Idrissi', source: 'Pexels', url: 'https://www.pexels.com/photo/interior-of-the-riad-palais-sebban-marrakesh-morocco-15531325/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Youssef Benali' },
-      { role: 'Interior design', name: 'Salma Idrissi' },
-      { role: 'Landscape', name: 'Jardins du Sud' },
-    ],
   },
   {
     id: 'aegean-cliff-villa',
@@ -104,19 +72,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Mykonos', country: 'Greece', lat: 37.4467, lng: 25.3289 },
     year: 2024,
     client: 'Private client',
-    areaSqm: 640,
-    services: ['Architecture', 'Interior design', 'Landscape'],
-    summary: 'A whitewashed family villa stepped down a cliff above the Aegean, every room opening onto the sea.',
-    brief:
-      'Build a summer home for three generations on a steep, wind-exposed plot, with privacy for each family and one generous place to gather.',
-    concept:
-      'The house is broken into four cubic volumes that follow the fall of the land, linked by outdoor stairs and shaded terraces. Deep window reveals and a planted roof protect the interiors from the meltemi wind, while an infinity pool runs along the lowest terrace.',
-    materials: ['Local stone', 'Whitewashed lime render', 'Oak', 'Terrazzo'],
-    sustainability: [
-      'Rooftop solar covering most of the summer demand',
-      'Planted roofs that insulate and slow storm water',
-      'Native drought-tolerant landscaping',
-    ],
+    description:
+      'A whitewashed family villa stepped down a cliff above the Aegean, every room opening onto the sea. The house is broken into four cubic volumes that follow the fall of the land, linked by outdoor stairs and shaded terraces. Deep window reveals and a planted roof protect the interiors from the meltemi wind, while an infinity pool runs along the lowest terrace.',
     thumbnail: '/projects/aegean-cliff-villa/thumb.jpg',
     hero: {
       src: '/projects/aegean-cliff-villa/hero.jpg',
@@ -135,33 +92,17 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'AXP Photography', source: 'Pexels', url: 'https://www.pexels.com/photo/balcony-of-a-white-seaside-villa-with-blue-shutters-16428291/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Eleni Markou' },
-      { role: 'Project architect', name: 'Nikos Pappas' },
-      { role: 'Landscape', name: 'Cyclades Garden Studio' },
-    ],
   },
   {
     id: 'corniche-residences',
     title: 'Corniche Residences',
     type: 'residential',
-    status: 'under-construction',
+    status: 'in-progress',
     location: { city: 'Beirut', country: 'Lebanon', lat: 33.8959, lng: 35.4784 },
     year: 2026,
     client: 'Raouché Estates',
-    areaSqm: 18500,
-    services: ['Architecture', 'Facade design', 'Interior design'],
-    summary: 'A sixteen-storey residential building facing the Mediterranean along the Beirut corniche.',
-    brief:
-      'Design family apartments that make the most of the sea view while protecting residents from the afternoon sun and the noise of the coastal road.',
-    concept:
-      'Every apartment has a deep loggia that doubles as an outdoor room. The loggias shift slightly from floor to floor, giving the facade a gentle rhythm and shading the glass behind them. A shared garden on the podium roof sits above the street noise.',
-    materials: ['Local limestone', 'Precast concrete', 'Bronze-anodised aluminium', 'Walnut'],
-    sustainability: [
-      'Self-shading loggias that cut solar gain on the west facade',
-      'Water-efficient fittings and on-site storage',
-      'Podium roof garden with native planting',
-    ],
+    description:
+      'A sixteen-storey residential building facing the Mediterranean along the Beirut corniche. Every apartment has a deep loggia that doubles as an outdoor room. The loggias shift slightly from floor to floor, giving the facade a gentle rhythm and shading the glass behind them. A shared garden on the podium roof sits above the street noise.',
     thumbnail: '/projects/corniche-residences/thumb.jpg',
     hero: {
       src: '/projects/corniche-residences/hero.jpg',
@@ -180,11 +121,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Jason D', source: 'Pexels', url: 'https://www.pexels.com/photo/beirut-terraces-in-beirut-17107019/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Karim Haddad' },
-      { role: 'Facade design', name: 'Lara Nassar' },
-      { role: 'Structural engineer', name: 'Cedar Structures' },
-    ],
   },
   {
     id: 'marina-crown-hotel',
@@ -194,19 +130,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Dubai', country: 'United Arab Emirates', lat: 25.0805, lng: 55.1403 },
     year: 2021,
     client: 'Crown Hospitality Group',
-    areaSqm: 46000,
-    services: ['Architecture', 'Interior design', 'Lighting design'],
-    summary: 'A 320-key waterfront hotel tower with a sky lobby and pool deck overlooking Dubai Marina.',
-    brief:
-      'Create a landmark hotel on a tight marina plot, with a public lobby and restaurants that draw visitors in from the waterfront promenade.',
-    concept:
-      'The tower is wrapped in a fine vertical fin facade that reads as a single crown from the water and filters the desert sun. A sky lobby on the 40th floor gives every guest the view on arrival, and the podium opens onto the promenade with shaded terraces.',
-    materials: ['Glass-fibre reinforced concrete fins', 'Low-iron glass', 'Travertine', 'Brushed bronze'],
-    sustainability: [
-      'High-performance glazing and external shading fins',
-      'District cooling connection',
-      'LEED Gold design target',
-    ],
+    description:
+      'A 320-key waterfront hotel tower with a sky lobby and pool deck overlooking Dubai Marina. The tower is wrapped in a fine vertical fin facade that reads as a single crown from the water and filters the desert sun. A sky lobby on the 40th floor gives every guest the view on arrival, and the podium opens onto the promenade with shaded terraces.',
     thumbnail: '/projects/marina-crown-hotel/thumb.jpg',
     hero: {
       src: '/projects/marina-crown-hotel/hero.jpg',
@@ -225,11 +150,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Mauricio Krupka Buendia', source: 'Pexels', url: 'https://www.pexels.com/photo/iconic-modern-skyscraper-against-blue-sky-30506369/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Omar Al Mansoori' },
-      { role: 'Interior design', name: 'Hana Rahimi' },
-      { role: 'Lighting design', name: 'Lumen Gulf' },
-    ],
   },
   {
     id: 'ubud-forest-villa',
@@ -239,19 +159,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Ubud', country: 'Indonesia', lat: -8.5069, lng: 115.2625 },
     year: 2023,
     client: 'Private client',
-    areaSqm: 480,
-    services: ['Architecture', 'Interior design', 'Landscape'],
-    summary: 'An open-sided retreat raised on stone plinths at the edge of a rainforest ravine.',
-    brief:
-      'Build a retreat that feels part of the forest, open to the air and the sound of the river, while staying dry through the monsoon season.',
-    concept:
-      'Pavilions with wide overhanging roofs sit on stone plinths, connected by covered walkways. Walls slide away entirely so living spaces become verandas, and the pool is set into the ravine edge so it appears to merge with the treetops.',
-    materials: ['Bamboo', 'Reclaimed ironwood', 'Volcanic stone', 'Alang-alang thatch'],
-    sustainability: [
-      'Fully naturally ventilated living spaces',
-      'Rapidly renewable bamboo structure',
-      'No trees removed during construction',
-    ],
+    description:
+      'An open-sided retreat raised on stone plinths at the edge of a rainforest ravine. Pavilions with wide overhanging roofs sit on stone plinths, connected by covered walkways. Walls slide away entirely so living spaces become verandas, and the pool is set into the ravine edge so it appears to merge with the treetops.',
     thumbnail: '/projects/ubud-forest-villa/thumb.jpg',
     hero: {
       src: '/projects/ubud-forest-villa/hero.jpg',
@@ -270,33 +179,17 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Mark Direen', source: 'Pexels', url: 'https://www.pexels.com/photo/tropical-villa-pool-in-lush-bali-garden-36418268/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Made Wirawan' },
-      { role: 'Bamboo engineering', name: 'Bambu Works' },
-      { role: 'Landscape', name: 'Putu Ayu Lestari' },
-    ],
   },
   {
     id: 'harbour-tower-apartments',
     title: 'Harbour Tower Apartments',
     type: 'residential',
-    status: 'in-design',
+    status: 'in-progress',
     location: { city: 'Sydney', country: 'Australia', lat: -33.8688, lng: 151.2093 },
     year: 2028,
     client: 'Harbourline Living',
-    areaSqm: 31000,
-    services: ['Architecture', 'Master planning', 'Facade design'],
-    summary: 'A slender residential tower with winter gardens on every level, overlooking Sydney Harbour.',
-    brief:
-      'Deliver 210 apartments on a narrow city site, with outdoor space that stays usable in strong harbour winds.',
-    concept:
-      'The tower tapers as it rises, and its corners are carved into enclosed winter gardens with operable glass, giving every home a sheltered outdoor room. A public laneway at ground level links the street to the harbour foreshore.',
-    materials: ['Sandstone-tone precast', 'Operable glass louvres', 'Timber soffits', 'Recycled brick'],
-    sustainability: [
-      'All-electric building with no on-site gas',
-      'Targeting a 6 Star Green Star rating',
-      'Winter gardens that buffer heat loss and gain',
-    ],
+    description:
+      'A slender residential tower with winter gardens on every level, overlooking Sydney Harbour. The tower tapers as it rises, and its corners are carved into enclosed winter gardens with operable glass, giving every home a sheltered outdoor room. A public laneway at ground level links the street to the harbour foreshore.',
     thumbnail: '/projects/harbour-tower-apartments/thumb.jpg',
     hero: {
       src: '/projects/harbour-tower-apartments/hero.jpg',
@@ -315,11 +208,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Jan van der Wolf', source: 'Pexels', url: 'https://www.pexels.com/photo/modern-high-rise-apartment-building-against-blue-sky-40065479/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Claire Donovan' },
-      { role: 'Facade engineer', name: 'Southern Facades' },
-      { role: 'Sustainability', name: 'Kai Nakamura' },
-    ],
   },
   {
     id: 'clifton-bay-house',
@@ -329,19 +217,8 @@ export const demoProjects: Project[] = [
     location: { city: 'Cape Town', country: 'South Africa', lat: -33.9399, lng: 18.377 },
     year: 2022,
     client: 'Private client',
-    areaSqm: 720,
-    services: ['Architecture', 'Interior design'],
-    summary: 'A cantilevered concrete house above Clifton Bay, framed between the ocean and Lion’s Head.',
-    brief:
-      'Make the most of a steep site with two extraordinary views, the Atlantic to the west and the mountain behind, without the house dominating the slope.',
-    concept:
-      'Two concrete planes slide past each other: the lower one holds bedrooms tucked into the hillside, the upper one cantilevers towards the ocean with an open living floor and a pool that projects beyond the rock. A glazed stair links the two and frames the mountain.',
-    materials: ['Board-marked concrete', 'Granite', 'Oiled oak', 'Bronze glazing frames'],
-    sustainability: [
-      'Earth-sheltered lower floor for stable temperatures',
-      'Solar water heating and battery storage',
-      'Fynbos landscaping that needs no irrigation',
-    ],
+    description:
+      'A cantilevered concrete house above Clifton Bay, framed between the ocean and Lion’s Head. Two concrete planes slide past each other: the lower one holds bedrooms tucked into the hillside, the upper one cantilevers towards the ocean with an open living floor and a pool that projects beyond the rock. A glazed stair links the two and frames the mountain.',
     thumbnail: '/projects/clifton-bay-house/thumb.jpg',
     hero: {
       src: '/projects/clifton-bay-house/hero.jpg',
@@ -360,33 +237,17 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Robert So', source: 'Pexels', url: 'https://www.pexels.com/photo/houses-by-the-sea-17944688/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Thandi Mokoena' },
-      { role: 'Project architect', name: 'Pieter van Wyk' },
-      { role: 'Structural engineer', name: 'Table Bay Engineering' },
-    ],
   },
   {
     id: 'tulum-beach-hotel',
     title: 'Tulum Beach Hotel',
     type: 'hotel',
-    status: 'under-construction',
+    status: 'in-progress',
     location: { city: 'Tulum', country: 'Mexico', lat: 20.2114, lng: -87.4654 },
     year: 2026,
     client: 'Selva Mar Resorts',
-    areaSqm: 8800,
-    services: ['Architecture', 'Interior design', 'Landscape'],
-    summary: 'A low-rise beach hotel of forty suites set among the jungle and dunes of the Riviera Maya.',
-    brief:
-      'Build a beachfront hotel that keeps the dune and jungle intact, so guests feel the landscape before they see the buildings.',
-    concept:
-      'Suites are grouped in small two-storey clusters threaded between existing trees, raised on piles above the dune. Timber lattices and chukum plaster soften the buildings into the jungle, and a sinuous boardwalk leads from the arrival court to the sea.',
-    materials: ['Chukum plaster', 'Tropical hardwood lattice', 'Limestone', 'Palm thatch'],
-    sustainability: [
-      'Buildings raised on piles to protect the dune system',
-      'Constructed wetland treating all wastewater',
-      'Solar array on the arrival pavilion',
-    ],
+    description:
+      'A low-rise beach hotel of forty suites set among the jungle and dunes of the Riviera Maya. Suites are grouped in small two-storey clusters threaded between existing trees, raised on piles above the dune. Timber lattices and chukum plaster soften the buildings into the jungle, and a sinuous boardwalk leads from the arrival court to the sea.',
     thumbnail: '/projects/tulum-beach-hotel/thumb.jpg',
     hero: {
       src: '/projects/tulum-beach-hotel/hero.jpg',
@@ -405,11 +266,6 @@ export const demoProjects: Project[] = [
         credit: { photographer: 'Amar Preciado', source: 'Pexels', url: 'https://www.pexels.com/photo/aerial-view-of-hotel-bahia-principe-grand-tulum-on-the-seashore-in-tulum-mexico-14359340/' },
       },
     ],
-    team: [
-      { role: 'Lead architect', name: 'Valeria Ortiz' },
-      { role: 'Landscape', name: 'Paisaje Maya' },
-      { role: 'Interior design', name: 'Diego Ramírez' },
-    ],
   },
   {
     id: 'tribeca-lofts',
@@ -419,19 +275,8 @@ export const demoProjects: Project[] = [
     location: { city: 'New York', country: 'United States', lat: 40.7163, lng: -74.0086 },
     year: 2020,
     client: 'Hudson Row Partners',
-    areaSqm: 9600,
-    services: ['Architecture', 'Adaptive reuse', 'Interior design'],
-    summary: 'A cast-iron loft building in Tribeca restored and extended with a recessed glass penthouse.',
-    brief:
-      'Turn a former textile warehouse into eighteen loft homes, restore the cast-iron facade, and add floor area without changing how the building reads from the street.',
-    concept:
-      'The historic facade was restored piece by piece, while a two-storey glass penthouse is set back so it disappears from the sidewalk. Inside, the original columns and timber floors define open lofts, and a new light well brings daylight to the centre of the deep plan.',
-    materials: ['Restored cast iron', 'Reclaimed heart pine', 'Steel and glass', 'Brick'],
-    sustainability: [
-      'Adaptive reuse of an existing structure',
-      'High-performance secondary glazing behind the historic windows',
-      'Green roof on the penthouse terrace',
-    ],
+    description:
+      'A cast-iron loft building in Tribeca restored and extended with a recessed glass penthouse. The historic facade was restored piece by piece, while a two-storey glass penthouse is set back so it disappears from the sidewalk. Inside, the original columns and timber floors define open lofts, and a new light well brings daylight to the centre of the deep plan.',
     thumbnail: '/projects/tribeca-lofts/thumb.jpg',
     hero: {
       src: '/projects/tribeca-lofts/hero.jpg',
@@ -449,11 +294,6 @@ export const demoProjects: Project[] = [
         alt: 'A red-brick loft building with arched upper windows and small balconies catching the late light.',
         credit: { photographer: 'Willian Justen de Vasconcellos', source: 'Pexels', url: 'https://www.pexels.com/photo/brick-building-with-modern-industrial-design-29560594/' },
       },
-    ],
-    team: [
-      { role: 'Lead architect', name: 'Rachel Stein' },
-      { role: 'Preservation architect', name: 'Marcus Bell' },
-      { role: 'Structural engineer', name: 'Lower Manhattan Structures' },
     ],
   },
 ];

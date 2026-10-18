@@ -1,28 +1,38 @@
-import type { MouseEvent } from 'react';
+import type { Page } from '../hooks/useSiteRoute';
 import { EmblemIcon } from './icons';
-import { ScrollLink } from './ScrollLink';
+import { PageLink } from './PageLink';
 
-/** `onHome` returns to the globe from a project page; the links stay real links for new tabs. */
-export function SiteHeader({ onHome }: { onHome: () => void }) {
-  const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    onHome();
-  };
+const NAV: { page: Page; label: string }[] = [
+  { page: 'home', label: 'Projects' },
+  { page: 'studio', label: 'Studio' },
+  { page: 'contact', label: 'Contact' },
+];
 
+interface SiteHeaderProps {
+  /** The page in view; a project page counts as Projects. */
+  current: Page;
+  onNavigate: (page: Page) => void;
+}
+
+export function SiteHeader({ current, onNavigate }: SiteHeaderProps) {
   return (
     <header className="site-header">
-      <a className="wordmark" href="/" aria-label="ID-Indetails, all projects" onClick={goHome}>
+      <PageLink page="home" className="wordmark" onNavigate={onNavigate} aria-label="ID-Indetails, all projects">
         <EmblemIcon className="wordmark__emblem" />
         <span className="wordmark__name">ID-Indetails</span>
-      </a>
+      </PageLink>
       <nav className="site-nav" aria-label="Site">
-        <a className="site-nav__link" href="/" onClick={goHome}>
-          Projects
-        </a>
-        <ScrollLink className="site-nav__link" to="about">
-          Studio
-        </ScrollLink>
+        {NAV.map(({ page, label }) => (
+          <PageLink
+            key={page}
+            page={page}
+            className="site-nav__link"
+            onNavigate={onNavigate}
+            aria-current={current === page ? 'page' : undefined}
+          >
+            {label}
+          </PageLink>
+        ))}
       </nav>
     </header>
   );
