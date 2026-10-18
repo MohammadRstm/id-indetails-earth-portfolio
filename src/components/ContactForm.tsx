@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { ContactNotConnectedError, sendContactMessage } from '../data/contactSource';
-import { contactEmail } from '../data/site';
+import { contactInfo } from '../data/site';
 import {
   cleanContactMessage,
   emptyContactMessage,
@@ -110,6 +110,20 @@ export function ContactForm() {
         )}
       </div>
 
+      {/* Honeypot: hidden from people and from assistive technology; only bots fill it in. */}
+      <div className="contact-form__trap" aria-hidden="true">
+        <label htmlFor="contact-website">Leave this field empty</label>
+        <input
+          id="contact-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={values.website}
+          onChange={(event) => setValues((current) => ({ ...current, website: event.target.value }))}
+        />
+      </div>
+
       <div className="contact-form__footer">
         <button type="submit" className="button" disabled={send.status === 'sending'}>
           {send.status === 'sending' ? 'Sending…' : 'Send message'}
@@ -119,12 +133,12 @@ export function ContactForm() {
           {send.status === 'failed' &&
             (send.notConnected ? (
               <>
-                Online sending is not switched on yet. Please email us at <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+                Online sending is not switched on yet. Please email us at <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
               </>
             ) : (
               <>
                 Your message could not be sent. Please try again, or email us at{' '}
-                <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+                <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
               </>
             ))}
         </p>

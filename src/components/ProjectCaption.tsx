@@ -38,7 +38,7 @@ export function ProjectCaption({ projects, project, onOpen }: ProjectCaptionProp
         <span aria-hidden="true">·</span>
         <span>{projectStatusLabel[shown.status]}</span>
       </p>
-      <button type="button" className="text-action caption__open" onClick={() => onOpen(shown.id)}>
+      <button type="button" className="text-action caption__open" onClick={() => onOpen(shown.slug)}>
         View project
         <ArrowRightIcon />
       </button>

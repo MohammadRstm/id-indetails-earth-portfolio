@@ -77,7 +77,7 @@ export function groupByLocation(projects: Project[]): LocationGroup[] {
     if (match) {
       match.projects.push(project);
     } else {
-      groups.push({ id: `loc-${project.id}`, city, country, lat, lng, projects: [project] });
+      groups.push({ id: `loc-${project.slug}`, city, country, lat, lng, projects: [project] });
     }
   }
   return groups;

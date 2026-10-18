@@ -4,9 +4,11 @@ export interface ContactMessage {
   /** Optional. */
   phone: string;
   message: string;
+  /** Honeypot: a field hidden from people, so only bots fill it in. The API quietly drops those messages. */
+  website: string;
 }
 
-export type ContactField = keyof ContactMessage;
+export type ContactField = Exclude<keyof ContactMessage, 'website'>;
 export type ContactErrors = Partial<Record<ContactField, string>>;
 
 export const MESSAGE_MIN_LENGTH = 10;
@@ -18,7 +20,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Digits with the usual separators and an optional leading +, at least 6 digits. */
 const PHONE_PATTERN = /^\+?[\d\s().-]{6,}$/;
 
-export const emptyContactMessage: ContactMessage = { name: '', email: '', phone: '', message: '' };
+export const emptyContactMessage: ContactMessage = { name: '', email: '', phone: '', message: '', website: '' };
 
 /** Checks the form before sending; returns a message for each field that needs fixing. */
 export function validateContactMessage(values: ContactMessage): ContactErrors {
@@ -52,5 +54,6 @@ export function cleanContactMessage(values: ContactMessage): ContactMessage {
     email: values.email.trim(),
     phone: values.phone.trim(),
     message: values.message.trim(),
+    website: values.website,
   };
 }

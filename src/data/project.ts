@@ -11,7 +11,8 @@ export interface ProjectLocation {
 
 export interface ImageCredit {
   photographer: string;
-  source: 'Unsplash' | 'Pexels';
+  /** Where the photo comes from, for example Pexels. */
+  source: string;
   url: string;
 }
 
@@ -22,8 +23,9 @@ export interface ProjectImage {
 }
 
 export interface Project {
-  /** URL-safe slug; also the project's address, `/projects/<id>`. */
-  id: string;
+  id: number;
+  /** URL-safe and unique; the project's address is `/projects/<slug>`. */
+  slug: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;
@@ -37,7 +39,14 @@ export interface Project {
   thumbnail: string;
   hero: ProjectImage;
   gallery: ProjectImage[];
+  /** Whether the project is one of those in the drifting strip on the landing page (at most 20). */
+  showInConveyor: boolean;
+  /** Position in the strip; null when the project is not in it. */
+  conveyorOrder: number | null;
 }
+
+/** The most projects the landing page's strip shows. */
+export const CONVEYOR_LIMIT = 20;
 
 export const projectTypeLabel: Record<ProjectType, string> = {
   villa: 'Villa',

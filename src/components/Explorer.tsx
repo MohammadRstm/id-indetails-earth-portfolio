@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Project } from '../data/project';
 import { GlobeStage } from '../globe/GlobeStage';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
+import { conveyorProjects } from '../lib/conveyor';
 import { groupByLocation } from '../lib/geo';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { MotionToggle } from './MotionToggle';
@@ -14,12 +15,13 @@ const isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 
 interface ExplorerProps {
+  /** Every project: all of them are on the globe; the strip shows those marked for it. */
   projects: Project[];
-  /** The project whose page is open, from the address bar; null on the globe overview. */
-  openId: string | null;
-  /** False while another page (Studio, Contact) is showing: the explorer stays mounted but hidden and idle. */
+  /** The slug of the project whose page is open, from the address bar; null on the globe overview. */
+  openSlug: string | null;
+  /** False while another page is showing: the explorer stays mounted but hidden and idle. */
   active: boolean;
-  onOpenProject: (id: string) => void;
+  onOpenProject: (slug: string) => void;
   onCloseProject: () => void;
   onContact: () => void;
 }
@@ -30,55 +32,54 @@ interface ExplorerProps {
  * slides the strip away, turns the globe to the place and moves in until
  * only its horizon remains above the project's page.
  */
-export function Explorer({ projects, openId, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
+export function Explorer({ projects, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
   const reducedMotion = usePrefersReducedMotion();
   const narrow = useMediaQuery('(max-width: 959px)');
   const groups = useMemo(() => groupByLocation(projects), [projects]);
-  const [selectedId, setSelectedId] = useState(() => openId ?? projects[0].id);
+  const conveyor = useMemo(() => conveyorProjects(projects), [projects]);
+  const inConveyor = (slug: string | null) => conveyor.some((item) => item.slug === slug);
+  const [stripSlug, setStripSlug] = useState(() => (inConveyor(openSlug) && openSlug) || conveyor[0].slug);
   const [motionOn, setMotionOn] = useState(true);
   const frameRef = useRef<HTMLDivElement>(null);
 
-  // Whatever project was open stays selected afterwards, so the strip comes back at the same card.
-  const [lastOpenId, setLastOpenId] = useState(openId);
-  if (openId !== lastOpenId) {
-    setLastOpenId(openId);
-    if (openId !== null) setSelectedId(openId);
+  // A project from the strip stays selected after its page closes, so the strip comes back at the same card.
+  // A project opened from elsewhere (the projects page, the globe) leaves the strip where it was.
+  const [lastOpenSlug, setLastOpenSlug] = useState(openSlug);
+  if (openSlug !== lastOpenSlug) {
+    setLastOpenSlug(openSlug);
+    if (openSlug !== null && inConveyor(openSlug)) setStripSlug(openSlug);
   }
 
-  const projectOpen = openId !== null;
-  const currentId = openId ?? selectedId;
-  const index = Math.max(0, projects.findIndex((project) => project.id === currentId));
-  const project = projects[index];
+  const projectOpen = openSlug !== null;
+  const stripIndex = Math.max(0, conveyor.findIndex((item) => item.slug === stripSlug));
+  const project = (openSlug && projects.find((item) => item.slug === openSlug)) || conveyor[stripIndex];
   const group = groups.find((candidate) => candidate.projects.includes(project)) ?? groups[0];
-  const at = (offset: number) => projects[(index + offset + projects.length) % projects.length];
+  // Previous and next move through the strip's projects, or through every project for one that is not in it.
+  const sequence = !projectOpen || conveyor.includes(project) ? conveyor : projects;
+  const sequenceIndex = Math.max(0, sequence.indexOf(project));
+  const at = (offset: number) => sequence[(sequenceIndex + offset + sequence.length) % sequence.length];
 
   const step = useCallback(
     (direction: 1 | -1) => {
-      if (projectOpen) {
-        const from = projects.findIndex((item) => item.id === currentId);
-        onOpenProject(projects[(from + direction + projects.length) % projects.length].id);
-        return;
-      }
-      setSelectedId((current) => {
-        const from = projects.findIndex((item) => item.id === current);
-        return projects[(from + direction + projects.length) % projects.length].id;
-      });
+      const next = sequence[(sequenceIndex + direction + sequence.length) % sequence.length];
+      if (projectOpen) onOpenProject(next.slug);
+      else setStripSlug(next.slug);
     },
-    [projects, projectOpen, currentId, onOpenProject],
+    [sequence, sequenceIndex, projectOpen, onOpenProject],
   );
 
   const openProject = useCallback(
-    (id: string) => {
-      setSelectedId(id);
-      onOpenProject(id);
+    (slug: string) => {
+      if (conveyor.some((item) => item.slug === slug)) setStripSlug(slug);
+      onOpenProject(slug);
     },
-    [onOpenProject],
+    [conveyor, onOpenProject],
   );
 
   const selectGroup = useCallback(
     (groupId: string) => {
       const target = groups.find((candidate) => candidate.id === groupId);
-      if (target) openProject(target.projects[0].id);
+      if (target) openProject(target.projects[0].slug);
     },
     [groups, openProject],
   );
@@ -126,19 +127,19 @@ export function Explorer({ projects, openId, active, onOpenProject, onCloseProje
 
         <div className="explorer__strip" inert={projectOpen}>
           <ProjectStrip
-            projects={projects}
-            activeIndex={index}
+            projects={conveyor}
+            activeIndex={stripIndex}
             axis={narrow ? 'x' : 'y'}
             drifting={motionOn && !reducedMotion}
             running={active && !projectOpen}
             reducedMotion={reducedMotion}
-            onActiveChange={(next) => setSelectedId(projects[next].id)}
-            onOpen={(next) => openProject(projects[next].id)}
+            onActiveChange={(next) => setStripSlug(conveyor[next].slug)}
+            onOpen={(next) => openProject(conveyor[next].slug)}
           />
         </div>
 
         <section className="showcase" id="project-controls" tabIndex={-1} aria-label="Projects" inert={projectOpen}>
-          <ProjectCaption projects={projects} project={project} onOpen={openProject} />
+          <ProjectCaption projects={conveyor} project={conveyor[stripIndex]} onOpen={openProject} />
           <div className="showcase__controls">
             <button type="button" className="icon-button" aria-label="Previous project" onClick={() => step(-1)}>
               <ChevronLeftIcon />
@@ -151,7 +152,7 @@ export function Explorer({ projects, openId, active, onOpenProject, onCloseProje
         </section>
 
         {projectOpen && (
-          <ProjectDock key={project.id} project={project} reducedMotion={reducedMotion} />
+          <ProjectDock key={project.slug} project={project} reducedMotion={reducedMotion} />
         )}
         {projectOpen && <ProjectHeading project={project} onBack={onCloseProject} />}
       </div>
@@ -163,7 +164,7 @@ export function Explorer({ projects, openId, active, onOpenProject, onCloseProje
       <p className="visually-hidden" aria-live="polite">
         {projectOpen
           ? `${project.title}, ${project.location.city}. Project page open.`
-          : `${project.title}, ${project.location.city}. Project ${index + 1} of ${projects.length}.`}
+          : `${project.title}, ${project.location.city}. Project ${stripIndex + 1} of ${conveyor.length}.`}
       </p>
     </main>
   );

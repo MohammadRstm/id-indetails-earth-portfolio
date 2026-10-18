@@ -2,21 +2,31 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { demoProjects } from './demoProjects';
-import { projectStatusLabel, projectTypeLabel } from './project';
+import { CONVEYOR_LIMIT, projectStatusLabel, projectTypeLabel } from './project';
 import { fetchProjects } from './projectSource';
 
 const publicDir = fileURLToPath(new URL('../../public/', import.meta.url));
 
 describe('demoProjects', () => {
-  it('has projects with unique, URL-safe ids', () => {
+  it('has projects with unique ids and unique, URL-safe slugs', () => {
     expect(demoProjects.length).toBeGreaterThan(1);
     const ids = demoProjects.map((project) => project.id);
-    for (const id of ids) expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+    const slugs = demoProjects.map((project) => project.slug);
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
     expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it('marks no more projects for the strip than it can show, each with its own place in it', () => {
+    const marked = demoProjects.filter((project) => project.showInConveyor);
+    expect(marked.length).toBeLessThanOrEqual(CONVEYOR_LIMIT);
+    for (const project of marked) expect(project.conveyorOrder, project.slug).not.toBeNull();
+    const orders = marked.map((project) => project.conveyorOrder);
+    expect(new Set(orders).size).toBe(orders.length);
   });
 
   it('places every project on the globe', () => {
-    for (const { id, location } of demoProjects) {
+    for (const { slug: id, location } of demoProjects) {
       expect(location.lat, id).toBeGreaterThanOrEqual(-90);
       expect(location.lat, id).toBeLessThanOrEqual(90);
       expect(location.lng, id).toBeGreaterThanOrEqual(-180);
@@ -27,7 +37,7 @@ describe('demoProjects', () => {
   });
 
   it('fills in every field with a known type and status', () => {
-    for (const { id, type, status, year, client, description } of demoProjects) {
+    for (const { slug: id, type, status, year, client, description } of demoProjects) {
       expect(Object.keys(projectTypeLabel), id).toContain(type);
       expect(Object.keys(projectStatusLabel), id).toContain(status);
       expect(Number.isInteger(year), id).toBe(true);
@@ -40,12 +50,12 @@ describe('demoProjects', () => {
     for (const project of demoProjects) {
       const images = [project.hero, ...project.gallery];
       for (const src of [project.thumbnail, ...images.map((image) => image.src)]) {
-        expect(src.startsWith('/'), `${project.id}: ${src}`).toBe(true);
-        expect(existsSync(publicDir + src.slice(1)), `${project.id}: ${src}`).toBe(true);
+        expect(src.startsWith('/'), `${project.slug}: ${src}`).toBe(true);
+        expect(existsSync(publicDir + src.slice(1)), `${project.slug}: ${src}`).toBe(true);
       }
       for (const image of images) {
-        expect(image.alt.trim(), `${project.id}: ${image.src} alt text`).not.toBe('');
-        expect(image.credit?.url, `${project.id}: ${image.src} credit`).toMatch(/^https:\/\//);
+        expect(image.alt.trim(), `${project.slug}: ${image.src} alt text`).not.toBe('');
+        expect(image.credit?.url, `${project.slug}: ${image.src} credit`).toMatch(/^https:\/\//);
       }
     }
   });

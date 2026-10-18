@@ -13,7 +13,7 @@ interface ProjectHeadingProps {
 export function ProjectHeading({ project, onBack }: ProjectHeadingProps) {
   const { location } = project;
   return (
-    <div className="heading" key={project.id}>
+    <div className="heading" key={project.slug}>
       <button type="button" className="heading__back" onClick={onBack}>
         <ArrowLeftIcon />
         All projects
@@ -60,7 +60,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
   const credited = photos.filter((image) => image.credit);
 
   return (
-    <article className="project-page" id="project-page" aria-labelledby="project-title" key={project.id}>
+    <article className="project-page" id="project-page" aria-labelledby="project-title" key={project.slug}>
       <Photo image={project.hero} className="project-page__hero" />
 
       <div className="project-page__intro">
@@ -70,10 +70,12 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
             <dt>Status</dt>
             <dd>{projectStatusLabel[project.status]}</dd>
           </div>
-          <div>
-            <dt>Client</dt>
-            <dd>{project.client}</dd>
-          </div>
+          {project.client && (
+            <div>
+              <dt>Client</dt>
+              <dd>{project.client}</dd>
+            </div>
+          )}
           <div>
             <dt>Location</dt>
             <dd>
@@ -127,7 +129,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
           { label: 'Previous project', item: previous },
           { label: 'Next project', item: next },
         ].map(({ label, item }) => (
-          <button key={label} type="button" className="project-nav__link" onClick={() => onOpen(item.id)}>
+          <button key={label} type="button" className="project-nav__link" onClick={() => onOpen(item.slug)}>
             <img src={item.thumbnail} alt="" loading="lazy" decoding="async" />
             <span className="project-nav__label">{label}</span>
             <span className="project-nav__title">{item.title}</span>

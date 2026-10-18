@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { ContactPage } from './components/ContactPage';
 import { Explorer } from './components/Explorer';
+import { ProjectsPage } from './components/ProjectsPage';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { StudioPage } from './components/StudioPage';
@@ -15,36 +16,37 @@ export default function App() {
   const reducedMotion = usePrefersReducedMotion();
   const list = projects.status === 'ready' ? projects.projects : null;
   // While projects load, a project address is taken on trust so a shared link is not lost.
-  const isKnownProject = useCallback((id: string) => list === null || list.some((project) => project.id === id), [list]);
+  const isKnownProject = useCallback((slug: string) => list === null || list.some((project) => project.slug === slug), [list]);
   const { route, openProject, closeProject, goTo } = useSiteRoute(isKnownProject);
-  const openId = route.page === 'project' ? route.id : null;
+  const openSlug = route.page === 'project' ? route.slug : null;
   const onGlobe = route.page === 'home' || route.page === 'project';
 
   useScrollForRoute(route, reducedMotion);
 
   useEffect(() => {
-    const project = openId ? list?.find((item) => item.id === openId) : undefined;
+    const project = openSlug ? list?.find((item) => item.slug === openSlug) : undefined;
     const titles: Record<Route['page'], string> = {
       home: `${SITE_TITLE} · Architecture`,
+      projects: `Projects · ${SITE_TITLE}`,
       project: project ? `${project.title} · ${SITE_TITLE}` : SITE_TITLE,
       studio: `Studio · ${SITE_TITLE}`,
       contact: `Contact · ${SITE_TITLE}`,
     };
     document.title = titles[route.page];
-  }, [route.page, openId, list]);
+  }, [route.page, openSlug, list]);
 
   return (
     <>
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <SiteHeader current={route.page === 'project' ? 'home' : route.page} onNavigate={goTo} />
+      <SiteHeader current={route.page === 'project' ? 'projects' : route.page} onNavigate={goTo} />
 
       {list && list.length > 0 ? (
         // Stays mounted behind the other pages, so the globe and the strip are ready the moment you come back.
         <Explorer
           projects={list}
-          openId={openId}
+          openSlug={openSlug}
           active={onGlobe}
           onOpenProject={openProject}
           onCloseProject={closeProject}
@@ -64,6 +66,7 @@ export default function App() {
           </main>
         )
       )}
+      {route.page === 'projects' && list && <ProjectsPage projects={list} onOpenProject={openProject} />}
       {route.page === 'studio' && <StudioPage onContact={() => goTo('contact')} />}
       {route.page === 'contact' && <ContactPage />}
 

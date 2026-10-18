@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cleanContactMessage, emptyContactMessage, MESSAGE_MAX_LENGTH, validateContactMessage } from './contactForm';
 
-const valid = { name: 'Rana Haddad', email: 'rana@example.com', phone: '', message: 'A villa near Batroun, starting next spring.' };
+const valid = { name: 'Rana Haddad', email: 'rana@example.com', phone: '', message: 'A villa near Batroun, starting next spring.', website: '' };
 
 describe('validateContactMessage', () => {
   it('accepts a complete message, with or without a phone number', () => {
@@ -40,11 +40,14 @@ describe('validateContactMessage', () => {
 
 describe('cleanContactMessage', () => {
   it('trims every field', () => {
-    expect(cleanContactMessage({ name: ' Rana ', email: ' rana@example.com ', phone: ' 1 ', message: ' Hello there ' })).toEqual({
+    expect(
+      cleanContactMessage({ name: ' Rana ', email: ' rana@example.com ', phone: ' 1 ', message: ' Hello there ', website: '' }),
+    ).toEqual({
       name: 'Rana',
       email: 'rana@example.com',
       phone: '1',
       message: 'Hello there',
+      website: '',
     });
   });
 });

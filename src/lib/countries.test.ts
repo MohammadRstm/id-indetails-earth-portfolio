@@ -28,15 +28,15 @@ describe('findCountry', () => {
     const expected: Record<string, string> = {
       'United States': 'United States of America',
     };
-    for (const { id, location } of demoProjects) {
+    for (const { slug, location } of demoProjects) {
       const country = findCountry(data.countries, location.lng, location.lat);
-      expect(country?.name, id).toBe(expected[location.country] ?? location.country);
+      expect(country?.name, slug).toBe(expected[location.country] ?? location.country);
     }
   });
 
   it('puts every office in the country it names', () => {
     for (const office of offices) {
-      expect(findCountry(data.countries, office.lng, office.lat)?.name, office.id).toBe(office.country);
+      expect(findCountry(data.countries, office.lng, office.lat)?.name, office.city).toBe(office.country);
     }
   });
 });

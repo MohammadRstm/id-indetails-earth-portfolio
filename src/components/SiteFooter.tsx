@@ -25,7 +25,7 @@ export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void })
         <nav aria-label="Footer">
           <ul className="site-footer__nav">
             <li>
-              <PageLink page="home" onNavigate={onNavigate}>
+              <PageLink page="projects" onNavigate={onNavigate}>
                 Projects
               </PageLink>
             </li>

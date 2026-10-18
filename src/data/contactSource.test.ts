@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ContactNotConnectedError, sendContactMessage } from './contactSource';
 
-const message = { name: 'Rana', email: 'rana@example.com', phone: '', message: 'A villa near Batroun.' };
+const message = { name: 'Rana', email: 'rana@example.com', phone: '', message: 'A villa near Batroun.', website: '' };
 
 describe('sendContactMessage', () => {
   it('reports that it is not connected yet, rather than pretending to send', async () => {

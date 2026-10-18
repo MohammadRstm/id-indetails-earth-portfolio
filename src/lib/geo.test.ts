@@ -15,20 +15,25 @@ import {
 
 const DEG = Math.PI / 180;
 
-function project(id: string, lat: number, lng: number): Project {
-  const image = { src: `/projects/${id}.jpg`, alt: id };
+let nextId = 1;
+
+function project(slug: string, lat: number, lng: number): Project {
+  const image = { src: `/projects/${slug}.jpg`, alt: slug };
   return {
-    id,
-    title: id,
+    id: nextId++,
+    slug,
+    title: slug,
     type: 'villa',
     status: 'completed',
-    location: { city: id, country: 'Testland', lat, lng },
+    location: { city: slug, country: 'Testland', lat, lng },
     year: 2024,
     client: 'Test client',
     description: 'Test project',
     thumbnail: image.src,
     hero: image,
     gallery: [],
+    showInConveyor: true,
+    conveyorOrder: null,
   };
 }
 
@@ -158,7 +163,7 @@ describe('groupByLocation', () => {
     const [group] = groupByLocation([project('a', 10, 20), project('b', 10.2, 20.2)]);
     expect(group.id).toBe('loc-a');
     expect(group.city).toBe('a');
-    expect(group.projects.map((p) => p.id)).toEqual(['a', 'b']);
+    expect(group.projects.map((p) => p.slug)).toEqual(['a', 'b']);
   });
 
   it('separates projects that are further apart than the grouping distance', () => {

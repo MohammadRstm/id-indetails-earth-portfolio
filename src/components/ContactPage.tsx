@@ -1,5 +1,5 @@
 import { offices, type Office } from '../data/offices';
-import { contactEmail } from '../data/site';
+import { contactInfo } from '../data/site';
 import { ContactForm } from './ContactForm';
 
 const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
@@ -24,8 +24,8 @@ export function ContactPage() {
         <aside className="contact__details" aria-label="Contact details">
           <div className="contact__item">
             <h2 className="contact__label">Email</h2>
-            <a className="contact__value" href={`mailto:${contactEmail}`}>
-              {contactEmail}
+            <a className="contact__value" href={`mailto:${contactInfo.email}`}>
+              {contactInfo.email}
             </a>
           </div>
           <div className="contact__item">
