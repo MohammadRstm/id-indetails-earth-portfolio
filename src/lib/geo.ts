@@ -56,7 +56,7 @@ export function formatCoordinates(lat: number, lng: number): string {
 
 export interface LocationGroup {
   id: string;
-  city: string;
+  city: string | null;
   country: string;
   lat: number;
   lng: number;

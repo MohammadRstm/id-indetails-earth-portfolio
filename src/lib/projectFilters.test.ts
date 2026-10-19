@@ -38,6 +38,12 @@ describe('filterProjects', () => {
     expect(slugs(only({ search: 'mexico' }))).toEqual(['tulum-beach-hotel']);
     expect(only({ search: 'nothing like this' })).toEqual([]);
   });
+
+  it('still searches a project with no city, by its country', () => {
+    const countryOnly = { ...demoProjects[0], location: { ...demoProjects[0].location, city: null } };
+    expect(filterProjects([countryOnly], { ...noFilters, search: 'portugal' })).toHaveLength(1);
+    expect(filterProjects([countryOnly], { ...noFilters, search: 'lisbon' })).toHaveLength(0);
+  });
 });
 
 describe('sortProjects', () => {

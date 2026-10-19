@@ -20,23 +20,24 @@ describe('parseProject', () => {
     const project = parseProject(apiProject);
     expect(project.slug).toBe('aegean-cliff-villa');
     expect(project.location.lat).toBe(37.4467);
-    expect(project.hero.credit?.photographer).toBe('A. Person');
-    expect(project.gallery[0].credit).toBeUndefined();
+    expect(project.location.countryCode).toBe('GR');
+    expect(project.location.approximate).toBe(false);
+    expect(project.hero).toEqual({ src: '/api/public/website/files/2', alt: 'The villa' });
     expect(project.showInConveyor).toBe(true);
     expect(project.conveyorOrder).toBe(3);
   });
 
-  it('accepts an empty client, a project outside the strip and photos without a credit', () => {
-    const project = parseProject({
-      ...apiProject,
-      client: '',
-      showInConveyor: false,
-      conveyorOrder: null,
-      hero: { ...apiProject.hero, credit: null },
-    });
+  it('accepts an empty client and a project outside the strip', () => {
+    const project = parseProject({ ...apiProject, client: '', showInConveyor: false, conveyorOrder: null });
     expect(project.client).toBe('');
     expect(project.conveyorOrder).toBeNull();
-    expect(project.hero.credit).toBeUndefined();
+  });
+
+  it('accepts a project known only by its country, at a point the API picked', () => {
+    const project = parseProject({ ...apiProject, location: { ...apiProject.location, city: null, approximate: true } });
+    expect(project.location.city).toBeNull();
+    expect(project.location.country).toBe('Greece');
+    expect(project.location.approximate).toBe(true);
   });
 
   it('rejects what the site cannot show', () => {
@@ -47,6 +48,9 @@ describe('parseProject', () => {
       { ...apiProject, status: 'paused' },
       { ...apiProject, location: { ...apiProject.location, lat: 120 } },
       { ...apiProject, location: { ...apiProject.location, lng: 'east' } },
+      { ...apiProject, location: { ...apiProject.location, countryCode: 'Greece' } },
+      { ...apiProject, location: { ...apiProject.location, countryCode: 'gr' } },
+      { ...apiProject, location: { ...apiProject.location, approximate: 'no' } },
       { ...apiProject, thumbnail: '' },
       { ...apiProject, hero: null },
       { ...apiProject, gallery: 'none' },
@@ -72,7 +76,9 @@ describe('parseList', () => {
 describe('the other shapes', () => {
   it('reads services, locations, social links, contact and settings', () => {
     expect(parseService({ id: 1, title: 'Architecture', description: 'Buildings.' })).toEqual({ id: 1, title: 'Architecture', description: 'Buildings.' });
-    expect(parseLocation({ id: 2, city: 'Beirut', country: 'Lebanon', lat: 33.89, lng: 35.5, address: '', phone: '+961 1' }).city).toBe('Beirut');
+    expect(
+      parseLocation({ id: 2, city: 'Beirut', country: 'Lebanon', countryCode: 'LB', lat: 33.89, lng: 35.5, address: '', phone: '+961 1' }),
+    ).toMatchObject({ city: 'Beirut', countryCode: 'LB' });
     expect(parseSocialLink({ id: 3, label: 'Instagram', url: 'https://www.instagram.com/x' }).label).toBe('Instagram');
     expect(parseContactInfo({ email: 'studio@example.com' })).toEqual({ email: 'studio@example.com' });
     expect(parseSiteSettings({ faviconUrl: '/api/public/website/files/9' })).toEqual({ faviconUrl: '/api/public/website/files/9' });

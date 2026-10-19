@@ -3,23 +3,30 @@ export type ProjectType = 'villa' | 'residential' | 'hotel';
 export type ProjectStatus = 'completed' | 'in-progress';
 
 export interface ProjectLocation {
-  city: string;
+  /** Null when only the country is known. */
+  city: string | null;
   country: string;
+  /** ISO 3166-1 alpha-2, upper case ("LB"). */
+  countryCode: string;
+  /** Where the marker goes on the globe; always set, see `approximate`. */
   lat: number;
   lng: number;
+  /**
+   * True when the API picked the point (near the city's centre, or somewhere in the country when there is no
+   * city) rather than it being typed in; such a point is not shown as the project's position.
+   */
+  approximate: boolean;
 }
 
-export interface ImageCredit {
-  photographer: string;
-  /** Where the photo comes from, for example Pexels. */
-  source: string;
-  url: string;
-}
+/** "City, Country", or just "Country" when no city is given. */
+export const placeName = ({ city, country }: ProjectLocation) => (city ? `${city}, ${country}` : country);
+
+/** Whether the coordinates are the project's own, typed in, rather than a point the API picked. */
+export const hasExactPosition = (location: ProjectLocation) => !location.approximate;
 
 export interface ProjectImage {
   src: string;
   alt: string;
-  credit?: ImageCredit;
 }
 
 export interface Project {

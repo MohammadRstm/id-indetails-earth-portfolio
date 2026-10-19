@@ -30,7 +30,7 @@ export function filterProjects(projects: Project[], filters: ProjectFilters): Pr
     if (filters.year !== null && project.year !== filters.year) return false;
     if (filters.country && project.location.country !== filters.country) return false;
     if (words.length === 0) return true;
-    const haystack = fold([project.title, project.client, project.location.city, project.location.country].join(' '));
+    const haystack = fold([project.title, project.client, project.location.city ?? '', project.location.country].join(' '));
     return words.every((word) => haystack.includes(word));
   });
 }

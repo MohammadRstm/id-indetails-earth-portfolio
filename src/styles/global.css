@@ -760,20 +760,10 @@ img[data-loaded='false'] {
   padding-top: 8px;
 }
 
-.project-page__photo-credits,
 .project-page__note {
   margin-top: 28px;
   font-size: 12.5px;
   color: var(--muted);
-}
-
-.project-page__note {
-  margin-top: 6px;
-}
-
-.project-page__photo-credits a {
-  color: var(--ink-soft);
-  text-underline-offset: 3px;
 }
 
 .enquiry {

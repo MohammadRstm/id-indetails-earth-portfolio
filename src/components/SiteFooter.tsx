@@ -44,7 +44,7 @@ export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void })
       </div>
       <div className="site-footer__bottom">
         <p>© {new Date().getFullYear()} ID-Indetails</p>
-        <p>Country outlines from Natural Earth, in the public domain. Project photographs are credited on each project page.</p>
+        <p>Country outlines from Natural Earth, in the public domain.</p>
       </div>
     </footer>
   );

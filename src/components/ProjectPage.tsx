@@ -1,4 +1,11 @@
-import { projectStatusLabel, projectTypeLabel, type Project, type ProjectImage } from '../data/project';
+import {
+  hasExactPosition,
+  placeName,
+  projectStatusLabel,
+  projectTypeLabel,
+  type Project,
+  type ProjectImage,
+} from '../data/project';
 import { formatCoordinates } from '../lib/geo';
 import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
 import { LoadedImage } from './LoadedImage';
@@ -20,13 +27,14 @@ export function ProjectHeading({ project, onBack }: ProjectHeadingProps) {
       </button>
       <div className="heading__body">
         <p className="heading__eyebrow">
-          {projectTypeLabel[project.type]} · {location.city}, {location.country}
+          {projectTypeLabel[project.type]} · {placeName(location)}
         </p>
         <h2 className="heading__title" id="project-title">
           {project.title}
         </h2>
         <p className="heading__coords">
-          {formatCoordinates(location.lat, location.lng)} · {project.year}
+          {hasExactPosition(location) ? `${formatCoordinates(location.lat, location.lng)} · ` : ''}
+          {project.year}
         </p>
       </div>
       <ScrollLink className="heading__scroll" to="project-page">
@@ -56,8 +64,6 @@ function Photo({ image, className }: { image: ProjectImage; className: string })
 /** Everything about one project, below the horizon of the zoomed-in globe. */
 export function ProjectPage({ project, previous, next, onOpen, onContact }: ProjectPageProps) {
   const { location } = project;
-  const photos = [project.hero, ...project.gallery];
-  const credited = photos.filter((image) => image.credit);
 
   return (
     <article className="project-page" id="project-page" aria-labelledby="project-title" key={project.slug}>
@@ -78,9 +84,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
           )}
           <div>
             <dt>Location</dt>
-            <dd>
-              {location.city}, {location.country}
-            </dd>
+            <dd>{placeName(location)}</dd>
           </div>
           <div>
             <dt>{project.status === 'completed' ? 'Year' : 'Expected'}</dt>
@@ -98,21 +102,6 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
       ))}
 
       <div className="project-page__credits">
-        {credited.length > 0 && (
-          <p className="project-page__photo-credits">
-            Photography:{' '}
-            {credited.map((image, index) => (
-              <span key={image.src}>
-                {index > 0 && ', '}
-                <a href={image.credit?.url} target="_blank" rel="noopener noreferrer">
-                  {image.credit?.photographer}
-                </a>{' '}
-                on {image.credit?.source}
-              </span>
-            ))}
-            .
-          </p>
-        )}
         <p className="project-page__note">Illustrative project: the name, client and details are examples.</p>
       </div>
 
@@ -133,9 +122,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
             <img src={item.thumbnail} alt="" loading="lazy" decoding="async" />
             <span className="project-nav__label">{label}</span>
             <span className="project-nav__title">{item.title}</span>
-            <span className="project-nav__place">
-              {item.location.city}, {item.location.country}
-            </span>
+            <span className="project-nav__place">{placeName(item.location)}</span>
           </button>
         ))}
       </nav>

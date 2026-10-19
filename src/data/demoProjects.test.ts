@@ -33,6 +33,7 @@ describe('demoProjects', () => {
       expect(location.lng, id).toBeLessThanOrEqual(180);
       expect(location.city, id).not.toBe('');
       expect(location.country, id).not.toBe('');
+      expect(location.countryCode, id).toMatch(/^[A-Z]{2}$/);
     }
   });
 
@@ -46,7 +47,7 @@ describe('demoProjects', () => {
     }
   });
 
-  it('only points at image files that exist in public/, each with alt text and a credit', () => {
+  it('only points at image files that exist in public/, each with alt text', () => {
     for (const project of demoProjects) {
       const images = [project.hero, ...project.gallery];
       for (const src of [project.thumbnail, ...images.map((image) => image.src)]) {
@@ -55,7 +56,6 @@ describe('demoProjects', () => {
       }
       for (const image of images) {
         expect(image.alt.trim(), `${project.slug}: ${image.src} alt text`).not.toBe('');
-        expect(image.credit?.url, `${project.slug}: ${image.src} credit`).toMatch(/^https:\/\//);
       }
     }
   });

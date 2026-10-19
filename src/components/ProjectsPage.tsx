@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
+import { placeName, projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
 import { pathFor } from '../hooks/useSiteRoute';
 import {
   filterOptions,
@@ -155,9 +155,7 @@ export function ProjectsPage({ projects, onOpenProject }: ProjectsPageProps) {
                   {projectTypeLabel[project.type]} · {project.year}
                 </span>
                 <span className="project-card__title">{project.title}</span>
-                <span className="project-card__place">
-                  {project.location.city}, {project.location.country}
-                </span>
+                <span className="project-card__place">{placeName(project.location)}</span>
                 <span className="project-card__status" data-status={project.status}>
                   {projectStatusLabel[project.status]}
                 </span>

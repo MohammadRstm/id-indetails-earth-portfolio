@@ -2,7 +2,6 @@ import type { Office } from '../data/offices';
 import {
   projectStatusLabel,
   projectTypeLabel,
-  type ImageCredit,
   type Project,
   type ProjectImage,
   type ProjectStatus,
@@ -27,6 +26,19 @@ type Json = Record<string, unknown>;
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SLUG_MAX_LENGTH = 100;
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
+
+function countryCode(source: Json, what: string): string {
+  const code = text(source, 'countryCode', what);
+  if (!COUNTRY_CODE_PATTERN.test(code)) throw new ParseError(`${what}.countryCode "${code}" is not an ISO 3166-1 alpha-2 code`);
+  return code;
+}
+
+function flag(source: Json, key: string, what: string): boolean {
+  const value = source[key];
+  if (typeof value !== 'boolean') throw new ParseError(`${what}.${key} is not true or false`);
+  return value;
+}
 
 function object(value: unknown, what: string): Json {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ParseError(`${what} is not an object`);
@@ -52,22 +64,11 @@ function oneOf<T extends string>(source: Json, key: string, allowed: Record<T, s
   return value as T;
 }
 
-function credit(value: unknown, what: string): ImageCredit | undefined {
-  if (value === undefined || value === null) return undefined;
-  const source = object(value, what);
-  return {
-    photographer: text(source, 'photographer', what),
-    source: text(source, 'source', what) as ImageCredit['source'],
-    url: text(source, 'url', what),
-  };
-}
-
 function image(value: unknown, what: string): ProjectImage {
   const source = object(value, what);
   return {
     src: resolveAssetUrl(text(source, 'src', what)),
     alt: text(source, 'alt', what, { allowEmpty: true }),
-    credit: credit(source.credit, `${what}.credit`),
   };
 }
 
@@ -91,10 +92,12 @@ export function parseProject(value: unknown): Project {
     status: oneOf<ProjectStatus>(source, 'status', projectStatusLabel, what),
     client: text(source, 'client', what, { allowEmpty: true }),
     location: {
-      city: text(location, 'city', `${what}.location`),
+      city: location.city === null ? null : text(location, 'city', `${what}.location`),
       country: text(location, 'country', `${what}.location`),
+      countryCode: countryCode(location, `${what}.location`),
       lat: number(location, 'lat', `${what}.location`, [-90, 90]),
       lng: number(location, 'lng', `${what}.location`, [-180, 180]),
+      approximate: flag(location, 'approximate', `${what}.location`),
     },
     year: Math.trunc(number(source, 'year', what)),
     description: text(source, 'description', what),
@@ -117,6 +120,7 @@ export function parseLocation(value: unknown): Office {
     id: number(source, 'id', 'location'),
     city: text(source, 'city', 'location'),
     country: text(source, 'country', 'location'),
+    countryCode: countryCode(source, 'location'),
     lat: number(source, 'lat', 'location', [-90, 90]),
     lng: number(source, 'lng', 'location', [-180, 180]),
     address: text(source, 'address', 'location', { allowEmpty: true }),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Project } from '../data/project';
+import { placeName, type Project } from '../data/project';
 import { GlobeStage } from '../globe/GlobeStage';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
 import { conveyorProjects } from '../lib/conveyor';
@@ -163,8 +163,8 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
 
       <p className="visually-hidden" aria-live="polite">
         {projectOpen
-          ? `${project.title}, ${project.location.city}. Project page open.`
-          : `${project.title}, ${project.location.city}. Project ${stripIndex + 1} of ${conveyor.length}.`}
+          ? `${project.title}, ${placeName(project.location)}. Project page open.`
+          : `${project.title}, ${placeName(project.location)}. Project ${stripIndex + 1} of ${conveyor.length}.`}
       </p>
     </main>
   );

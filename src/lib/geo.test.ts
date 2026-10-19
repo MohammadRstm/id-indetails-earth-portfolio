@@ -25,7 +25,7 @@ function project(slug: string, lat: number, lng: number): Project {
     title: slug,
     type: 'villa',
     status: 'completed',
-    location: { city: slug, country: 'Testland', lat, lng },
+    location: { city: slug, country: 'Testland', countryCode: 'TL', lat, lng, approximate: false },
     year: 2024,
     client: 'Test client',
     description: 'Test project',
@@ -119,10 +119,10 @@ describe('orientationFor', () => {
   });
 
   it('brings every demo project onto the near side of the globe', () => {
-    for (const { location } of demoProjects) {
+    for (const { slug, location } of demoProjects) {
       const point = faceCamera(location.lat, location.lng);
-      expect(point.z, location.city).toBeGreaterThan(0.5);
-      expect(Math.abs(point.x), location.city).toBeLessThan(1e-9);
+      expect(point.z, slug).toBeGreaterThan(0.5);
+      expect(Math.abs(point.x), slug).toBeLessThan(1e-9);
     }
   });
 });
@@ -156,7 +156,7 @@ describe('groupByLocation', () => {
   it('gives every demo project its own place', () => {
     const groups = groupByLocation(demoProjects);
     expect(groups).toHaveLength(demoProjects.length);
-    for (const group of groups) expect(group.projects, group.city).toHaveLength(1);
+    for (const group of groups) expect(group.projects, group.id).toHaveLength(1);
   });
 
   it('names a group after its first project', () => {

@@ -1,4 +1,4 @@
-import { projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
+import { hasExactPosition, placeName, projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
 import { useCrossfade } from '../hooks/useCrossfade';
 import { formatCoordinates } from '../lib/geo';
 import { ArrowRightIcon } from './icons';
@@ -28,10 +28,8 @@ export function ProjectCaption({ projects, project, onOpen }: ProjectCaptionProp
       <h2 className="caption__title" id="caption-title">
         {shown.title}
       </h2>
-      <p className="caption__place">
-        {location.city}, {location.country}
-      </p>
-      <p className="caption__coords">{formatCoordinates(location.lat, location.lng)}</p>
+      <p className="caption__place">{placeName(location)}</p>
+      {hasExactPosition(location) && <p className="caption__coords">{formatCoordinates(location.lat, location.lng)}</p>}
       <p className="caption__summary">{shown.description}</p>
       <p className="caption__meta">
         <span>{shown.year}</span>

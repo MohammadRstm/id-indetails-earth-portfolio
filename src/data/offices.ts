@@ -3,6 +3,8 @@ export interface Office {
   id: number;
   city: string;
   country: string;
+  /** ISO 3166-1 alpha-2, upper case ("LB"). */
+  countryCode: string;
   /** Exact position, used for the globe and the map. */
   lat: number;
   lng: number;
@@ -17,6 +19,7 @@ export const offices: Office[] = [
     id: 1,
     city: 'Beirut',
     country: 'Lebanon',
+    countryCode: 'LB',
     lat: 33.8938,
     lng: 35.5018,
     address: 'Street and building to be confirmed, Beirut, Lebanon',
@@ -26,6 +29,7 @@ export const offices: Office[] = [
     id: 2,
     city: 'Abidjan',
     country: "Côte d'Ivoire",
+    countryCode: 'CI',
     lat: 5.36,
     lng: -4.0083,
     address: 'Street and building to be confirmed, Abidjan, Côte d’Ivoire',
