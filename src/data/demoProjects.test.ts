@@ -1,54 +1,68 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { formatStartDate } from '../lib/format';
 import { demoProjects } from './demoProjects';
-import { projectStatusLabel } from './project';
+import { CONVEYOR_LIMIT, projectStatusLabel, projectTypeLabel } from './project';
 import { fetchProjects } from './projectSource';
 
 const publicDir = fileURLToPath(new URL('../../public/', import.meta.url));
 
 describe('demoProjects', () => {
-  it('has projects with unique, non-empty ids', () => {
-    expect(demoProjects.length).toBeGreaterThan(0);
+  it('has projects with unique ids and unique, URL-safe slugs', () => {
+    expect(demoProjects.length).toBeGreaterThan(1);
     const ids = demoProjects.map((project) => project.id);
-    expect(ids.every((id) => id.length > 0)).toBe(true);
+    const slugs = demoProjects.map((project) => project.slug);
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
     expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it('marks no more projects for the strip than it can show, each with its own place in it', () => {
+    const marked = demoProjects.filter((project) => project.showInConveyor);
+    expect(marked.length).toBeLessThanOrEqual(CONVEYOR_LIMIT);
+    for (const project of marked) expect(project.conveyorOrder, project.slug).not.toBeNull();
+    const orders = marked.map((project) => project.conveyorOrder);
+    expect(new Set(orders).size).toBe(orders.length);
   });
 
   it('places every project on the globe', () => {
-    for (const { id, location } of demoProjects) {
+    for (const { slug: id, location } of demoProjects) {
       expect(location.lat, id).toBeGreaterThanOrEqual(-90);
       expect(location.lat, id).toBeLessThanOrEqual(90);
       expect(location.lng, id).toBeGreaterThanOrEqual(-180);
       expect(location.lng, id).toBeLessThanOrEqual(180);
       expect(location.city, id).not.toBe('');
       expect(location.country, id).not.toBe('');
+      expect(location.countryCode, id).toMatch(/^[A-Z]{2}$/);
     }
   });
 
-  it('has exactly one featured project', () => {
-    expect(demoProjects.filter((project) => project.featured)).toHaveLength(1);
-  });
-
-  it('only points at image files that exist in public/', () => {
-    const withImages = demoProjects.filter((project) => project.image);
-    expect(withImages.length).toBeGreaterThan(0);
-    for (const { id, image } of withImages) {
-      expect(image?.src.startsWith('/'), `${id} image path`).toBe(true);
-      expect(existsSync(publicDir + image?.src.slice(1)), `${id}: ${image?.src}`).toBe(true);
-      expect(image?.alt.trim(), `${id} alt text`).not.toBe('');
-    }
-  });
-
-  it('uses known statuses, valid dates and valid time zones', () => {
-    for (const { id, status, startDate, location } of demoProjects) {
+  it('fills in every field with a known type and status', () => {
+    for (const { slug: id, type, status, year, client, description } of demoProjects) {
+      expect(Object.keys(projectTypeLabel), id).toContain(type);
       expect(Object.keys(projectStatusLabel), id).toContain(status);
-      if (startDate) expect(formatStartDate(startDate), `${id} start date`).not.toBeNull();
-      if (location.timeZone) {
-        expect(() => new Intl.DateTimeFormat('en-GB', { timeZone: location.timeZone }), `${id} time zone`).not.toThrow();
+      expect(Number.isInteger(year), id).toBe(true);
+      expect(client.trim(), id).not.toBe('');
+      expect(description.trim(), id).not.toBe('');
+    }
+  });
+
+  it('only points at image files that exist in public/, each with alt text', () => {
+    for (const project of demoProjects) {
+      const images = [project.hero, ...project.gallery];
+      for (const src of [project.thumbnail, ...images.map((image) => image.src)]) {
+        expect(src.startsWith('/'), `${project.slug}: ${src}`).toBe(true);
+        expect(existsSync(publicDir + src.slice(1)), `${project.slug}: ${src}`).toBe(true);
+      }
+      for (const image of images) {
+        expect(image.alt.trim(), `${project.slug}: ${image.src} alt text`).not.toBe('');
       }
     }
+  });
+
+  it('never shows the same photograph twice', () => {
+    const sources = demoProjects.flatMap((project) => [project.hero.src, ...project.gallery.map((image) => image.src)]);
+    expect(new Set(sources).size).toBe(sources.length);
   });
 });
 

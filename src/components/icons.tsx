@@ -27,6 +27,24 @@ export const ChevronRightIcon = (props: IconProps) => (
   </svg>
 );
 
+export const ArrowRightIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M2.5 8h11M9.5 4l4 4-4 4" />
+  </svg>
+);
+
+export const ArrowLeftIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M13.5 8h-11M6.5 4l-4 4 4 4" />
+  </svg>
+);
+
+export const ArrowDownIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M8 2.5v11M4 9.5l4 4 4-4" />
+  </svg>
+);
+
 export const PauseIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="M5.5 3.5v9M10.5 3.5v9" />
@@ -45,11 +63,17 @@ export const CloseIcon = (props: IconProps) => (
   </svg>
 );
 
-/** The wordmark's emblem: a meridian ring with a single location point. */
-export const EmblemIcon = (props: IconProps) => (
-  <svg {...base} viewBox="0 0 24 24" width={22} height={22} strokeWidth={1.3} {...props}>
-    <circle cx="12" cy="12" r="9.25" />
-    <ellipse cx="12" cy="12" rx="4.2" ry="9.25" />
-    <circle cx="15.6" cy="8.4" r="1.7" fill="currentColor" stroke="none" />
+/** The two halves of the logo's split "0", in the PNG's 1024-unit coordinates. Also `public/favicon.svg`. */
+const LOGO_HALVES = [
+  'M495.5 95.68A221 245 0 0 0 291 340V685A221 243 0 0 0 495.5 927.32V777.21A77 77 0 0 1 435 702V320A77 77 0 0 1 495.5 244.79Z',
+  'M528.5 95.68A221 245 0 0 1 733 340V685A221 243 0 0 1 528.5 927.32V777.21A77 77 0 0 0 589 702V320A77 77 0 0 0 528.5 244.79Z',
+];
+
+/** The ID-Indetails logo: the split "0" on its own, in the text colour. */
+export const LogoMark = (props: IconProps) => (
+  <svg viewBox="291 95 442 833" width={16} height={30} fill="currentColor" aria-hidden focusable={false} {...props}>
+    {LOGO_HALVES.map((d) => (
+      <path key={d} d={d} />
+    ))}
   </svg>
 );

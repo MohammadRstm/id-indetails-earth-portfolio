@@ -8,13 +8,13 @@ import type { SceneUniforms } from './sceneUniforms';
 
 const SEGMENTS = 72;
 const SURFACE_RADIUS = 1.003;
-const FAINT_STRENGTH = 0.25;
-const ACTIVE_STRENGTH = 0.95;
+const FAINT_STRENGTH = 0.1;
+const ACTIVE_STRENGTH = 0.34;
 /** Distance, in globe radii per second, the dashes travel along the selected place's routes. */
 const FLOW_SPEED = 0.05;
 const FADE_RATE = 7;
 const DASH_PERIOD = 0.05;
-const ROUTE_COLOR = new Color('#5be3ff');
+const ROUTE_COLOR = new Color('#9db8e8');
 
 const vertexShader = /* glsl */ `
   attribute float aArc;
@@ -101,8 +101,8 @@ interface RoutesProps {
 }
 
 /**
- * Dashed arcs joining the places along a minimum spanning tree. Arcs touching
- * the selected place are bright and flow away from it; the rest stay faint.
+ * Faint dashed arcs joining the places along a minimum spanning tree. Arcs touching
+ * the selected place are a little brighter and flow away from it.
  */
 export function Routes({ groups, activeGroupId, uniforms, effects }: RoutesProps) {
   const invalidate = useThree((state) => state.invalidate);

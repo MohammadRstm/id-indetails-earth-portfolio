@@ -6,11 +6,15 @@ import { GlobeController, PITCH_LIMIT, smoothDamp, ZOOM_PITCH_BIAS } from './Glo
 const FRAME = 1 / 60;
 const DEG = Math.PI / 180;
 
-function createController(options: { autoRotate?: boolean; reducedMotion?: boolean; yaw?: number; pitch?: number } = {}) {
-  return new GlobeController(
+function createController(
+  options: { autoRotate?: boolean; reducedMotion?: boolean; closeUp?: boolean; yaw?: number; pitch?: number } = {},
+) {
+  const controller = new GlobeController(
     { yaw: options.yaw ?? 0, pitch: options.pitch ?? 0 },
     { autoRotate: options.autoRotate ?? false, reducedMotion: options.reducedMotion ?? false },
   );
+  if (options.closeUp) controller.setCloseUp(true);
+  return controller;
 }
 
 /** Steps the controller at 60 fps until `now` reaches `until`; returns the new time. */
@@ -106,7 +110,8 @@ describe('focus', () => {
     expect(finished).toBeLessThan(9);
     expect(wrapAngle(controller.yaw - goal.yaw)).toBeCloseTo(0, 4);
     expect(controller.pitch).toBeCloseTo(goal.pitch, 4);
-    expect(controller.zoom).toBe(1);
+    // Without the close-up the whole globe stays in view.
+    expect(controller.zoom).toBe(0);
   });
 
   it('keeps asking for frames while the transition is running', () => {
@@ -379,7 +384,7 @@ describe('zoom', () => {
 
   it('stays out while a far turn is under way, then moves in once the place is close', () => {
     const goal = orientationFor(0, 0);
-    const controller = createController({ yaw: goal.yaw + 2 });
+    const controller = createController({ closeUp: true, yaw: goal.yaw + 2 });
     controller.focus(0, 0, 0);
 
     let now = advance(controller, 0, 0.3);
@@ -399,14 +404,14 @@ describe('zoom', () => {
   });
 
   it('heads straight in when the place is already close', () => {
-    const controller = createController({ yaw: orientationFor(0, 0).yaw + 0.2 });
+    const controller = createController({ closeUp: true, yaw: orientationFor(0, 0).yaw + 0.2 });
     controller.focus(0, 0, 0);
     advance(controller, 0, 0.5);
     expect(controller.zoom).toBeGreaterThan(0.3);
   });
 
   it('eases out for a distant place and back in again', () => {
-    const controller = createController();
+    const controller = createController({ closeUp: true });
     controller.focus(0, 0, 0, { instant: true });
     expect(controller.zoom).toBe(1);
 
@@ -427,7 +432,7 @@ describe('zoom', () => {
   });
 
   it('keeps asking for frames while the zoom is still moving, then goes idle', () => {
-    const controller = createController();
+    const controller = createController({ closeUp: true });
     controller.focus(0, 0, 0, { instant: true });
     controller.focus(0, 150, 1);
     expect(controller.update(FRAME, 1 + FRAME)).toBe(true);
@@ -435,30 +440,44 @@ describe('zoom', () => {
     expect(controller.update(FRAME, settledAt + FRAME)).toBe(false);
   });
 
-  it('stays zoomed in during the hold, and goes back out when the spin resumes', () => {
+  it('never moves in while the close-up is off', () => {
     const controller = createController({ autoRotate: true });
-    controller.focus(0, 0, 0, { instant: true, holdSeconds: 5 });
-    let now = advance(controller, 0, 4.5);
+    controller.focus(0, 0, 0, { instant: true });
+    expect(controller.zoom).toBe(0);
+    controller.focus(30, 90, 0);
+    let now = 0;
+    let highest = 0;
+    while (now < 12) {
+      now += FRAME;
+      controller.update(FRAME, now);
+      highest = Math.max(highest, controller.zoom);
+    }
+    expect(highest).toBe(0);
+  });
+
+  it('moves in when the close-up is switched on, and back out when it is switched off', () => {
+    const controller = createController();
+    controller.focus(0, 0, 0, { instant: true });
+    controller.setCloseUp(true);
+    const inAt = runUntilIdle(controller, 0);
     expect(controller.zoom).toBe(1);
 
-    now = advance(controller, now, 6);
-    expect(controller.zoom).toBeLessThan(1);
-    expect(controller.update(FRAME, now + FRAME)).toBe(true);
-    advance(controller, now, 14);
+    controller.setCloseUp(false);
+    expect(controller.update(FRAME, inAt + FRAME)).toBe(true);
+    runUntilIdle(controller, inAt + FRAME);
     expect(controller.zoom).toBe(0);
   });
 
-  it('holds for about ten seconds by default', () => {
-    const controller = createController({ autoRotate: true });
-    controller.focus(0, 0, 0, { instant: true });
-    advance(controller, 0, 9.5);
+  it('switches the close-up straight in and out with reduced motion', () => {
+    const controller = createController({ reducedMotion: true });
+    controller.setCloseUp(true);
     expect(controller.zoom).toBe(1);
-    advance(controller, 9.5, 12);
-    expect(controller.zoom).toBeLessThan(1);
+    controller.setCloseUp(false);
+    expect(controller.zoom).toBe(0);
   });
 
   it('keeps its zoom with rotation off', () => {
-    const controller = createController({ autoRotate: false });
+    const controller = createController({ closeUp: true, autoRotate: false });
     controller.focus(40, 10, 0);
     const idleAt = runUntilIdle(controller, 0);
     expect(controller.zoom).toBe(1);
@@ -469,7 +488,7 @@ describe('zoom', () => {
   });
 
   it('keeps a zoomed view when rotation is switched off during the hold', () => {
-    const controller = createController({ autoRotate: true });
+    const controller = createController({ closeUp: true, autoRotate: true });
     controller.focus(0, 0, 0, { instant: true });
     controller.setAutoRotate(false);
     advance(controller, 0, 30);
@@ -477,24 +496,13 @@ describe('zoom', () => {
   });
 
   it('jumps in with reduced motion', () => {
-    const controller = createController({ reducedMotion: true });
+    const controller = createController({ closeUp: true, reducedMotion: true });
     controller.focus(10, 20, 0);
     expect(controller.zoom).toBe(1);
   });
 
-  it('stays in while the pointer rests on a marker, and goes out afterwards', () => {
-    const controller = createController({ autoRotate: true });
-    controller.focus(0, 0, 0, { instant: true, holdSeconds: 1 });
-    controller.setHoverHold(true);
-    advance(controller, 0, 6);
-    expect(controller.zoom).toBe(1);
-    controller.setHoverHold(false);
-    advance(controller, 6, 12);
-    expect(controller.zoom).toBe(0);
-  });
-
-  it('keeps easing while the globe is being dragged', () => {
-    const controller = createController();
+  it('keeps easing, back towards the close-up, while the globe is being dragged', () => {
+    const controller = createController({ closeUp: true });
     controller.focus(0, 0, 0, { instant: true });
     controller.focus(0, 120, 0);
     advance(controller, 0, 0.2);
@@ -502,11 +510,11 @@ describe('zoom', () => {
     expect(controller.isTransitioning).toBe(false);
     const before = controller.zoom;
     advance(controller, 0.2, 1.5);
-    expect(controller.zoom).toBeLessThan(before);
+    expect(controller.zoom).toBeGreaterThan(before);
   });
 
   it('turns drags down as the camera moves in', () => {
-    const controller = createController();
+    const controller = createController({ closeUp: true });
     expect(controller.dragScale).toBe(1);
     controller.focus(0, 0, 0, { instant: true });
     expect(controller.dragScale).toBeCloseTo(0.35);
@@ -519,7 +527,7 @@ describe('zoom', () => {
       [64.1466, -21.9426],
       [1.29, 103.85],
     ]) {
-      const controller = createController();
+      const controller = createController({ closeUp: true });
       controller.focus(lat, lng, 0, { instant: true });
       const { x, y, z } = latLngToVector(lat, lng);
       const place = new Vector3(x, y, z).applyEuler(new Euler(controller.pitch - controller.tilt, controller.yaw, 0, 'XYZ'));
@@ -530,7 +538,7 @@ describe('zoom', () => {
   });
 
   it('tips the globe back gradually as the zoom grows', () => {
-    const controller = createController();
+    const controller = createController({ closeUp: true });
     controller.focus(20, 0, 0);
     const tilts: number[] = [];
     for (let now = FRAME; now < 8; now += FRAME) {

@@ -1,125 +1,186 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Project } from '../data/project';
+import { placeName, type Project } from '../data/project';
 import { GlobeStage } from '../globe/GlobeStage';
-import { usePrefersReducedMotion } from '../hooks/useMediaQuery';
+import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
+import { conveyorProjects } from '../lib/conveyor';
 import { groupByLocation } from '../lib/geo';
-import { ProjectDetailDialog } from './ProjectDetailDialog';
-import { ProjectNavigator } from './ProjectNavigator';
-import { ProjectPanel } from './ProjectPanel';
-import { RotationToggle } from './RotationToggle';
+import { HomeProjects } from './HomeProjects';
+import { ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { MotionToggle } from './MotionToggle';
+import { ProjectCaption } from './ProjectCaption';
+import { ProjectDock } from './ProjectDock';
+import { ProjectHeading, ProjectPage } from './ProjectPage';
+import { ProjectStrip } from './ProjectStrip';
 
 const isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
 
-/** The globe, the selected project and the controls that move between projects. */
-export function Explorer({ projects }: { projects: Project[] }) {
-  const reducedMotion = usePrefersReducedMotion();
-  const groups = useMemo(() => groupByLocation(projects), [projects]);
-  const [selectedId, setSelectedId] = useState(() => (projects.find((project) => project.featured) ?? projects[0]).id);
-  // null until the visitor chooses; then their choice wins over the motion preference.
-  const [rotationChoice, setRotationChoice] = useState<boolean | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const frameRef = useRef<HTMLDivElement>(null);
+interface ExplorerProps {
+  /** Every project: all of them are on the globe; the strip shows those marked for it. */
+  projects: Project[];
+  /** The slug of the project whose page is open, from the address bar; null on the globe overview. */
+  openSlug: string | null;
+  /** False while another page is showing: the explorer stays mounted but hidden and idle. */
+  active: boolean;
+  onOpenProject: (slug: string) => void;
+  onCloseProject: () => void;
+  onContact: () => void;
+}
 
-  const autoRotate = rotationChoice ?? !reducedMotion;
-  const index = Math.max(0, projects.findIndex((project) => project.id === selectedId));
-  const project = projects[index];
+/**
+ * The landing page and the project pages, without ever leaving the page: the
+ * overview shows the globe beside a drifting strip of projects, with every
+ * project in a paged grid below; opening one (from the strip, the globe or
+ * the grid) slides the strip away, turns the globe to the place and moves in
+ * until only its horizon remains above the project's page.
+ */
+export function Explorer({ projects, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const narrow = useMediaQuery('(max-width: 959px)');
+  const groups = useMemo(() => groupByLocation(projects), [projects]);
+  const conveyor = useMemo(() => conveyorProjects(projects), [projects]);
+  const inConveyor = (slug: string | null) => conveyor.some((item) => item.slug === slug);
+  const [stripSlug, setStripSlug] = useState(() => (inConveyor(openSlug) && openSlug) || conveyor[0].slug);
+  const [motionOn, setMotionOn] = useState(true);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [heroOnScreen, setHeroOnScreen] = useState(true);
+
+  // A project from the strip stays selected after its page closes, so the strip comes back at the same card.
+  // A project opened from elsewhere (the projects page, the globe) leaves the strip where it was.
+  const [lastOpenSlug, setLastOpenSlug] = useState(openSlug);
+  if (openSlug !== lastOpenSlug) {
+    setLastOpenSlug(openSlug);
+    if (openSlug !== null && inConveyor(openSlug)) setStripSlug(openSlug);
+  }
+
+  const projectOpen = openSlug !== null;
+  const stripIndex = Math.max(0, conveyor.findIndex((item) => item.slug === stripSlug));
+  const project = (openSlug && projects.find((item) => item.slug === openSlug)) || conveyor[stripIndex];
   const group = groups.find((candidate) => candidate.projects.includes(project)) ?? groups[0];
+  // Previous and next move through the strip's projects, or through every project for one that is not in it.
+  const sequence = !projectOpen || conveyor.includes(project) ? conveyor : projects;
+  const sequenceIndex = Math.max(0, sequence.indexOf(project));
+  const at = (offset: number) => sequence[(sequenceIndex + offset + sequence.length) % sequence.length];
 
   const step = useCallback(
     (direction: 1 | -1) => {
-      setSelectedId((current) => {
-        const at = projects.findIndex((item) => item.id === current);
-        return projects[(at + direction + projects.length) % projects.length].id;
-      });
+      const next = sequence[(sequenceIndex + direction + sequence.length) % sequence.length];
+      if (projectOpen) onOpenProject(next.slug);
+      else setStripSlug(next.slug);
     },
-    [projects],
+    [sequence, sequenceIndex, projectOpen, onOpenProject],
+  );
+
+  const openProject = useCallback(
+    (slug: string) => {
+      if (conveyor.some((item) => item.slug === slug)) setStripSlug(slug);
+      onOpenProject(slug);
+    },
+    [conveyor, onOpenProject],
   );
 
   const selectGroup = useCallback(
     (groupId: string) => {
       const target = groups.find((candidate) => candidate.id === groupId);
-      if (!target) return;
-      setSelectedId((current) => {
-        const at = target.projects.findIndex((item) => item.id === current);
-        // Selecting the place you are already on moves to its next project.
-        return target.projects[at === -1 ? 0 : (at + 1) % target.projects.length].id;
-      });
+      if (target) openProject(target.projects[0].slug);
     },
-    [groups],
+    [groups, openProject],
   );
 
   useEffect(() => {
+    if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (detailsOpen || event.altKey || event.ctrlKey || event.metaKey || isTypingTarget(event.target)) return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isTypingTarget(event.target)) return;
       if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();
         step(event.key === 'ArrowRight' ? 1 : -1);
+      } else if (event.key === 'Escape' && projectOpen) {
+        onCloseProject();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [detailsOpen, step]);
+  }, [active, step, projectOpen, onCloseProject]);
 
-  // Warm the cache so the preview image is ready by the time the panel fades in.
+  // Like the globe, the strip stops drifting while it is scrolled out of view, for example down at the grid.
   useEffect(() => {
-    projects.forEach((item) => {
-      if (item.image) new Image().src = item.image.src;
-    });
-  }, [projects]);
+    const hero = heroRef.current;
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => setHeroOnScreen(entry.isIntersecting));
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
+  // Warm the cache with the current project's opening photo, so its page appears complete.
+  useEffect(() => {
+    const image = new Image();
+    image.src = project.hero.src;
+  }, [project]);
 
   return (
-    <main className="explorer" id="top">
-      <h1 className="visually-hidden">ID-Indetails project globe</h1>
+    <main className="explorer" id={active ? 'content' : undefined} hidden={!active} data-view={projectOpen ? 'project' : 'overview'}>
+      <h1 className="visually-hidden">ID-Indetails architecture projects</h1>
       <div className="explorer__stage">
         <GlobeStage
           groups={groups}
           activeGroupId={group.id}
           activeProject={project}
-          autoRotate={autoRotate}
+          closeUp={projectOpen}
+          interactive={!projectOpen}
+          animate={motionOn && !reducedMotion}
           reducedMotion={reducedMotion}
           frameRef={frameRef}
           onSelectGroup={selectGroup}
         />
       </div>
 
-      <div className="explorer__layout">
+      <div className="explorer__hero" ref={heroRef}>
         <div className="explorer__frame" ref={frameRef} aria-hidden="true" />
 
-        <div className="explorer__controls">
-          <div className="explorer__motion">
-            <RotationToggle rotating={autoRotate} onToggle={() => setRotationChoice(!autoRotate)} />
-            <p className="explorer__hint">
-              <span className="explorer__hint-pointer">Drag to turn the globe.</span>
-              <span className="explorer__hint-touch">Swipe sideways to turn the globe.</span>
-            </p>
-          </div>
-          <ProjectNavigator
-            groups={groups}
-            activeGroupId={group.id}
-            position={index + 1}
-            total={projects.length}
-            onSelectGroup={selectGroup}
-            onStep={step}
+        <div className="explorer__strip" inert={projectOpen}>
+          <ProjectStrip
+            projects={conveyor}
+            activeIndex={stripIndex}
+            axis={narrow ? 'x' : 'y'}
+            drifting={motionOn && !reducedMotion}
+            running={active && !projectOpen && heroOnScreen}
+            reducedMotion={reducedMotion}
+            onActiveChange={(next) => setStripSlug(conveyor[next].slug)}
+            onOpen={(next) => openProject(conveyor[next].slug)}
           />
         </div>
 
-        <section className="explorer__panel" id="project" aria-label="Selected project">
-          <ProjectPanel
-            project={project}
-            group={group}
-            onSelectProject={setSelectedId}
-            onOpenDetails={() => setDetailsOpen(true)}
-          />
-          <p className="explorer__sample-note">Sample projects, shown for demonstration.</p>
+        <section className="showcase" id="project-controls" tabIndex={-1} aria-label="Projects" inert={projectOpen}>
+          <ProjectCaption projects={conveyor} project={conveyor[stripIndex]} onOpen={openProject} />
+          <div className="showcase__controls">
+            <button type="button" className="icon-button" aria-label="Previous project" onClick={() => step(-1)}>
+              <ChevronLeftIcon />
+            </button>
+            <button type="button" className="icon-button" aria-label="Next project" onClick={() => step(1)}>
+              <ChevronRightIcon />
+            </button>
+            {!reducedMotion && <MotionToggle playing={motionOn} onToggle={() => setMotionOn(!motionOn)} />}
+          </div>
         </section>
+
+        {projectOpen && (
+          <ProjectDock key={project.slug} project={project} reducedMotion={reducedMotion} />
+        )}
+        {projectOpen && <ProjectHeading project={project} onBack={onCloseProject} />}
       </div>
 
-      <p className="visually-hidden" aria-live="polite">
-        {`${project.title}, ${project.location.city}. Project ${index + 1} of ${projects.length}.`}
-      </p>
+      {projectOpen && (
+        <ProjectPage project={project} previous={at(-1)} next={at(1)} onOpen={openProject} onContact={onContact} />
+      )}
+      {/* Mounted afresh on each visit, so it starts from the page in the address. */}
+      {active && !projectOpen && <HomeProjects projects={projects} reducedMotion={reducedMotion} onOpenProject={openProject} />}
 
-      <ProjectDetailDialog project={project} open={detailsOpen} onClose={() => setDetailsOpen(false)} />
+      <p className="visually-hidden" aria-live="polite">
+        {projectOpen
+          ? `${project.title}, ${placeName(project.location)}. Project page open.`
+          : `${project.title}, ${placeName(project.location)}. Project ${stripIndex + 1} of ${conveyor.length}.`}
+      </p>
     </main>
   );
 }

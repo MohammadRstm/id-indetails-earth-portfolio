@@ -15,14 +15,25 @@ import {
 
 const DEG = Math.PI / 180;
 
-function project(id: string, lat: number, lng: number): Project {
+let nextId = 1;
+
+function project(slug: string, lat: number, lng: number): Project {
+  const image = { src: `/projects/${slug}.jpg`, alt: slug };
   return {
-    id,
-    title: id,
-    location: { city: id, country: 'Testland', lat, lng },
-    status: 'live',
-    category: 'Test',
+    id: nextId++,
+    slug,
+    title: slug,
+    type: 'villa',
+    status: 'completed',
+    location: { city: slug, country: 'Testland', countryCode: 'TL', lat, lng, approximate: false },
+    year: 2024,
+    client: 'Test client',
     description: 'Test project',
+    thumbnail: image.src,
+    hero: image,
+    gallery: [],
+    showInConveyor: true,
+    conveyorOrder: null,
   };
 }
 
@@ -108,10 +119,10 @@ describe('orientationFor', () => {
   });
 
   it('brings every demo project onto the near side of the globe', () => {
-    for (const { location } of demoProjects) {
+    for (const { slug, location } of demoProjects) {
       const point = faceCamera(location.lat, location.lng);
-      expect(point.z, location.city).toBeGreaterThan(0.5);
-      expect(Math.abs(point.x), location.city).toBeLessThan(1e-9);
+      expect(point.z, slug).toBeGreaterThan(0.5);
+      expect(Math.abs(point.x), slug).toBeLessThan(1e-9);
     }
   });
 });
@@ -142,25 +153,17 @@ describe('wrapAngle', () => {
 });
 
 describe('groupByLocation', () => {
-  it('groups the two Singapore demo projects and keeps every other project separate', () => {
+  it('gives every demo project its own place', () => {
     const groups = groupByLocation(demoProjects);
-    expect(groups).toHaveLength(demoProjects.length - 1);
-
-    const singapore = groups.filter((group) => group.city === 'Singapore');
-    expect(singapore).toHaveLength(1);
-    expect(singapore[0].projects.map((p) => p.id)).toEqual(['straits-telemetry', 'concourse']);
-
-    for (const group of groups.filter((g) => g.city !== 'Singapore')) {
-      expect(group.projects, group.city).toHaveLength(1);
-    }
-    expect(groups.flatMap((group) => group.projects)).toHaveLength(demoProjects.length);
+    expect(groups).toHaveLength(demoProjects.length);
+    for (const group of groups) expect(group.projects, group.id).toHaveLength(1);
   });
 
   it('names a group after its first project', () => {
     const [group] = groupByLocation([project('a', 10, 20), project('b', 10.2, 20.2)]);
     expect(group.id).toBe('loc-a');
     expect(group.city).toBe('a');
-    expect(group.projects.map((p) => p.id)).toEqual(['a', 'b']);
+    expect(group.projects.map((p) => p.slug)).toEqual(['a', 'b']);
   });
 
   it('separates projects that are further apart than the grouping distance', () => {

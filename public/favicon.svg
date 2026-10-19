@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-  <rect width="24" height="24" rx="6" fill="#040812"/>
-  <g stroke="#5be3ff" stroke-width="1.4">
-    <circle cx="12" cy="12" r="7.6"/>
-    <ellipse cx="12" cy="12" rx="3.4" ry="7.6"/>
-  </g>
-  <circle cx="15" cy="9" r="1.6" fill="#f3f8fc"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="62 62 900 900">
+  <style>
+    path { fill: #0a0a0b; }
+    @media (prefers-color-scheme: dark) { path { fill: #ffffff; } }
+  </style>
+  <path d="M495.5 95.68A221 245 0 0 0 291 340V685A221 243 0 0 0 495.5 927.32V777.21A77 77 0 0 1 435 702V320A77 77 0 0 1 495.5 244.79Z"/>
+  <path d="M528.5 95.68A221 245 0 0 1 733 340V685A221 243 0 0 1 528.5 927.32V777.21A77 77 0 0 0 589 702V320A77 77 0 0 0 528.5 244.79Z"/>
 </svg>

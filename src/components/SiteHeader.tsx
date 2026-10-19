@@ -1,16 +1,38 @@
-import { EmblemIcon } from './icons';
+import type { Page } from '../hooks/useSiteRoute';
+import { LogoMark } from './icons';
+import { PageLink } from './PageLink';
 
-export function SiteHeader() {
+const NAV: { page: Page; label: string }[] = [
+  { page: 'projects', label: 'Projects' },
+  { page: 'studio', label: 'Studio' },
+  { page: 'contact', label: 'Contact' },
+];
+
+interface SiteHeaderProps {
+  /** The page in view; a project page counts as Projects, and the globe as none of them. */
+  current: Page;
+  onNavigate: (page: Page) => void;
+}
+
+export function SiteHeader({ current, onNavigate }: SiteHeaderProps) {
   return (
     <header className="site-header">
-      <a className="wordmark" href="#top" aria-label="ID-Indetails, back to the globe">
-        <EmblemIcon className="wordmark__emblem" />
+      <PageLink page="home" className="wordmark" onNavigate={onNavigate} aria-label="ID-Indetails, all projects">
+        <LogoMark className="wordmark__logo" />
         <span className="wordmark__name">ID-Indetails</span>
-      </a>
+      </PageLink>
       <nav className="site-nav" aria-label="Site">
-        <a className="site-nav__link" href="#about">
-          About the studio
-        </a>
+        {NAV.map(({ page, label }) => (
+          <PageLink
+            key={page}
+            page={page}
+            className="site-nav__link"
+            onNavigate={onNavigate}
+            aria-current={current === page ? 'page' : undefined}
+          >
+            {label}
+          </PageLink>
+        ))}
       </nav>
     </header>
   );

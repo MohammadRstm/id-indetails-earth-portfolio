@@ -1,42 +1,67 @@
-export type ProjectStatus = 'discovery' | 'in-development' | 'live' | 'completed';
+export type ProjectType = 'villa' | 'residential' | 'hotel';
+
+export type ProjectStatus = 'completed' | 'in-progress';
 
 export interface ProjectLocation {
-  city: string;
+  /** Null when only the country is known. */
+  city: string | null;
   country: string;
+  /** ISO 3166-1 alpha-2, upper case ("LB"). */
+  countryCode: string;
+  /** Where the marker goes on the globe; always set, see `approximate`. */
   lat: number;
   lng: number;
-  /** IANA time zone, used to show the local time at the location. */
-  timeZone?: string;
+  /**
+   * True when the API picked the point (near the city's centre, or somewhere in the country when there is no
+   * city) rather than it being typed in; such a point is not shown as the project's position.
+   */
+  approximate: boolean;
 }
+
+/** "City, Country", or just "Country" when no city is given. */
+export const placeName = ({ city, country }: ProjectLocation) => (city ? `${city}, ${country}` : country);
+
+/** Whether the coordinates are the project's own, typed in, rather than a point the API picked. */
+export const hasExactPosition = (location: ProjectLocation) => !location.approximate;
 
 export interface ProjectImage {
   src: string;
   alt: string;
 }
 
-export interface ProjectDetails {
-  overview: string;
-  scope: string[];
-  stack: string[];
+export interface Project {
+  id: number;
+  /** URL-safe and unique; the project's address is `/projects/<slug>`. */
+  slug: string;
+  title: string;
+  type: ProjectType;
+  status: ProjectStatus;
+  /** The client organisation. */
+  client: string;
+  location: ProjectLocation;
+  /** Year of completion, or the expected year while the project is in progress. */
+  year: number;
+  description: string;
+  /** Portrait crop used in the project strip. */
+  thumbnail: string;
+  hero: ProjectImage;
+  gallery: ProjectImage[];
+  /** Whether the project is one of those in the drifting strip on the landing page (at most 20). */
+  showInConveyor: boolean;
+  /** Position in the strip; null when the project is not in it. */
+  conveyorOrder: number | null;
 }
 
-export interface Project {
-  id: string;
-  title: string;
-  location: ProjectLocation;
-  status: ProjectStatus;
-  category: string;
-  description: string;
-  /** ISO date, `YYYY-MM` or `YYYY-MM-DD`. */
-  startDate?: string;
-  image?: ProjectImage;
-  featured?: boolean;
-  details?: ProjectDetails;
-}
+/** The most projects the landing page's strip shows. */
+export const CONVEYOR_LIMIT = 20;
+
+export const projectTypeLabel: Record<ProjectType, string> = {
+  villa: 'Villa',
+  residential: 'Residential',
+  hotel: 'Hotel',
+};
 
 export const projectStatusLabel: Record<ProjectStatus, string> = {
-  discovery: 'Discovery',
-  'in-development': 'In development',
-  live: 'Live',
   completed: 'Completed',
+  'in-progress': 'In progress',
 };

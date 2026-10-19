@@ -1,8 +1,11 @@
 {
-  "name": "websitepreview",
+  "name": "id-indetails-website",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,7 +19,9 @@
     "@react-three/fiber": "^9.8.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -24,6 +29,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@types/three": "^0.186.0",
+    "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",

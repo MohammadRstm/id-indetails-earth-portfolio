@@ -1,10 +1,8 @@
 import { Vector3, type Camera, type Object3D } from 'three';
 import { latLngToVector } from '../lib/geo';
 
-/** Matches the beacons' resting height above the surface. */
-const MARKER_ALTITUDE = 1.003;
-/** Beyond this zoom every visible place shows its name, not just the selected one and the hovered one. */
-const LABELS_ZOOM = 0.6;
+/** Matches the markers' height above the surface. */
+const MARKER_ALTITUDE = 1.004;
 
 interface MarkerEntry {
   local: Vector3;
@@ -24,8 +22,6 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
  */
 export class MarkerProjector {
   private entries = new Map<string, MarkerEntry>();
-  private stage: HTMLElement | null = null;
-  private labelsOpen = false;
   private world = new Vector3();
   private toCamera = new Vector3();
   private normal = new Vector3();
@@ -39,20 +35,8 @@ export class MarkerProjector {
     this.entries.delete(id);
   }
 
-  /** The element that receives `data-zoomed` while the close-up is showing. */
-  setStage(stage: HTMLElement | null): void {
-    this.stage = stage;
-    this.labelsOpen = false;
-  }
-
-  update(camera: Camera, globe: Object3D, width: number, height: number, zoom: number): void {
+  update(camera: Camera, globe: Object3D, width: number, height: number): void {
     globe.updateWorldMatrix(true, false);
-
-    const labelsOpen = zoom > LABELS_ZOOM;
-    if (labelsOpen !== this.labelsOpen && this.stage) {
-      this.labelsOpen = labelsOpen;
-      this.stage.dataset.zoomed = String(labelsOpen);
-    }
 
     for (const entry of this.entries.values()) {
       const { element } = entry;
