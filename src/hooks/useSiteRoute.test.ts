@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pathFor, routeFromPath } from './useSiteRoute';
+import { pathFor, routeFromPath, savedScrollY } from './useSiteRoute';
 
 describe('site addresses', () => {
   it('reads the pages', () => {
@@ -37,6 +37,19 @@ describe('site addresses', () => {
       { page: 'project', slug: 'ü' },
     ] as const) {
       expect(routeFromPath(pathFor(route))).toEqual(route);
+    }
+  });
+});
+
+describe('savedScrollY', () => {
+  it('reads where a page was left', () => {
+    expect(savedScrollY({ scrollY: 1520 })).toBe(1520);
+    expect(savedScrollY({ pushed: true, scrollY: 0 })).toBe(0);
+  });
+
+  it('finds nothing in other history states', () => {
+    for (const state of [null, undefined, 'page', {}, { pushed: true }, { scrollY: '12' }, { scrollY: Number.NaN }]) {
+      expect(savedScrollY(state), JSON.stringify(state)).toBeNull();
     }
   });
 });

@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { placeName, projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
-import { pathFor } from '../hooks/useSiteRoute';
+import { useEffect, useMemo, useState } from 'react';
+import { projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
 import {
   filterOptions,
   filterProjects,
@@ -12,7 +11,7 @@ import {
   type ProjectFilters,
   type ProjectSort,
 } from '../lib/projectFilters';
-import { LoadedImage } from './LoadedImage';
+import { ProjectCard } from './ProjectCard';
 
 const SORT_LABELS: Record<ProjectSort, string> = { newest: 'Newest first', oldest: 'Oldest first', title: 'Title A to Z' };
 
@@ -38,12 +37,6 @@ export function ProjectsPage({ projects, onOpenProject }: ProjectsPageProps) {
   }, [filters]);
 
   const update = (changes: Partial<ProjectFilters>) => setFilters((current) => ({ ...current, ...changes }));
-
-  const open = (event: MouseEvent<HTMLAnchorElement>, slug: string) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    onOpenProject(slug);
-  };
 
   return (
     <main className="page" id="content">
@@ -147,19 +140,7 @@ export function ProjectsPage({ projects, onOpenProject }: ProjectsPageProps) {
         <ul className="project-grid">
           {shown.map((project) => (
             <li key={project.slug}>
-              <a className="project-card" href={pathFor({ page: 'project', slug: project.slug })} onClick={(event) => open(event, project.slug)}>
-                <span className="project-card__image">
-                  <LoadedImage src={project.thumbnail} alt="" loading="lazy" decoding="async" />
-                </span>
-                <span className="project-card__meta">
-                  {projectTypeLabel[project.type]} · {project.year}
-                </span>
-                <span className="project-card__title">{project.title}</span>
-                <span className="project-card__place">{placeName(project.location)}</span>
-                <span className="project-card__status" data-status={project.status}>
-                  {projectStatusLabel[project.status]}
-                </span>
-              </a>
+              <ProjectCard project={project} onOpen={onOpenProject} />
             </li>
           ))}
         </ul>

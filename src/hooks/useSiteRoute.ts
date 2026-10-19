@@ -8,9 +8,11 @@ const HOME: Route = { page: 'home' };
 const PROJECT_PATH = /^\/projects\/([^/]+)\/?$/;
 const PAGE_PATHS: Record<Page, string> = { home: '/', projects: '/projects', studio: '/studio', contact: '/contact' };
 
-/** Marks history entries this page pushed for a project, so closing it can step back instead of piling up entries. */
 interface RouteState {
-  pushed: true;
+  /** On entries this page pushed for a project, so closing it can step back instead of piling up entries. */
+  pushed?: true;
+  /** How far down the page was scrolled when it was left, so coming back to it with Back returns there. */
+  scrollY?: number;
 }
 
 /** Reads a route from an address. Anything unrecognised is the home page. */
@@ -32,7 +34,15 @@ export function pathFor(route: Route): string {
   return route.page === 'project' ? `/projects/${encodeURIComponent(route.slug)}` : PAGE_PATHS[route.page];
 }
 
-const wasPushed = (state: unknown) => typeof state === 'object' && state !== null && (state as Partial<RouteState>).pushed === true;
+const wasPushed = (state: unknown) => typeof state === 'object' && state !== null && (state as RouteState).pushed === true;
+
+/** Where the page was left, if it was left by moving to another page. */
+export function savedScrollY(state: unknown): number | null {
+  const scrollY = typeof state === 'object' && state !== null ? (state as RouteState).scrollY : undefined;
+  return typeof scrollY === 'number' && Number.isFinite(scrollY) ? scrollY : null;
+}
+
+const rememberScroll = () => window.history.replaceState({ ...window.history.state, scrollY: window.scrollY } satisfies RouteState, '');
 
 /**
  * The page and the open project live in the address bar (`/`, `/projects`,
@@ -61,8 +71,12 @@ export function useSiteRoute() {
     if (current.page === 'project' && current.slug === slug) return;
     const next: Route = { page: 'project', slug };
     // Moving between projects replaces the entry, so Back always returns to where the first one was opened from.
-    if (current.page === 'project') window.history.replaceState(window.history.state, '', pathFor(next));
-    else window.history.pushState({ pushed: true } satisfies RouteState, '', pathFor(next));
+    if (current.page === 'project') {
+      window.history.replaceState(window.history.state, '', pathFor(next));
+    } else {
+      rememberScroll();
+      window.history.pushState({ pushed: true } satisfies RouteState, '', pathFor(next));
+    }
     setRoute(next);
   }, []);
 
@@ -80,6 +94,7 @@ export function useSiteRoute() {
 
   const goTo = useCallback((page: Page) => {
     if (routeFromPath(window.location.pathname).page === page) return;
+    rememberScroll();
     window.history.pushState(null, '', PAGE_PATHS[page]);
     setRoute({ page });
   }, []);

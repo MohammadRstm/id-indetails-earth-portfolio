@@ -8,7 +8,7 @@ import { SiteHeader } from './components/SiteHeader';
 import { StudioPage } from './components/StudioPage';
 import { usePrefersReducedMotion } from './hooks/useMediaQuery';
 import { useProjects } from './hooks/useProjects';
-import { pathFor, useSiteRoute, type Route } from './hooks/useSiteRoute';
+import { pathFor, savedScrollY, useSiteRoute, type Route } from './hooks/useSiteRoute';
 
 const SITE_TITLE = 'ID-Indetails';
 
@@ -79,14 +79,15 @@ export default function App() {
 
 /**
  * Each view starts at the top, except a project, which starts just past the
- * header so the header scrolls out of sight and the whole photograph shows.
- * From far down a long page a smooth scroll would only sweep past empty
- * space, so it jumps instead.
+ * header so the header scrolls out of sight and the whole photograph shows,
+ * and a page reached with Back, which returns to where it was left (such as
+ * further down the grid of projects). From far down a long page a smooth
+ * scroll would only sweep past empty space, so it jumps instead.
  */
 function useScrollForRoute(path: string, isProject: boolean, reducedMotion: boolean) {
   useEffect(() => {
     const header = document.querySelector<HTMLElement>('.site-header');
-    const top = isProject && header ? header.offsetHeight : 0;
+    const top = isProject ? (header?.offsetHeight ?? 0) : (savedScrollY(window.history.state) ?? 0);
     const near = Math.abs(window.scrollY - top) < window.innerHeight * 1.5;
     window.scrollTo({ top, behavior: near && !reducedMotion ? 'smooth' : 'auto' });
   }, [path, isProject, reducedMotion]);

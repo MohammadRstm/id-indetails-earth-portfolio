@@ -4,6 +4,7 @@ import { GlobeStage } from '../globe/GlobeStage';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
 import { conveyorProjects } from '../lib/conveyor';
 import { groupByLocation } from '../lib/geo';
+import { HomeProjects } from './HomeProjects';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { MotionToggle } from './MotionToggle';
 import { ProjectCaption } from './ProjectCaption';
@@ -28,9 +29,10 @@ interface ExplorerProps {
 
 /**
  * The landing page and the project pages, without ever leaving the page: the
- * overview shows the globe beside a drifting strip of projects; opening one
- * slides the strip away, turns the globe to the place and moves in until
- * only its horizon remains above the project's page.
+ * overview shows the globe beside a drifting strip of projects, with every
+ * project in a paged grid below; opening one (from the strip, the globe or
+ * the grid) slides the strip away, turns the globe to the place and moves in
+ * until only its horizon remains above the project's page.
  */
 export function Explorer({ projects, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
   const reducedMotion = usePrefersReducedMotion();
@@ -41,6 +43,8 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
   const [stripSlug, setStripSlug] = useState(() => (inConveyor(openSlug) && openSlug) || conveyor[0].slug);
   const [motionOn, setMotionOn] = useState(true);
   const frameRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [heroOnScreen, setHeroOnScreen] = useState(true);
 
   // A project from the strip stays selected after its page closes, so the strip comes back at the same card.
   // A project opened from elsewhere (the projects page, the globe) leaves the strip where it was.
@@ -99,6 +103,15 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [active, step, projectOpen, onCloseProject]);
 
+  // Like the globe, the strip stops drifting while it is scrolled out of view, for example down at the grid.
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => setHeroOnScreen(entry.isIntersecting));
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   // Warm the cache with the current project's opening photo, so its page appears complete.
   useEffect(() => {
     const image = new Image();
@@ -122,7 +135,7 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
         />
       </div>
 
-      <div className="explorer__hero">
+      <div className="explorer__hero" ref={heroRef}>
         <div className="explorer__frame" ref={frameRef} aria-hidden="true" />
 
         <div className="explorer__strip" inert={projectOpen}>
@@ -131,7 +144,7 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
             activeIndex={stripIndex}
             axis={narrow ? 'x' : 'y'}
             drifting={motionOn && !reducedMotion}
-            running={active && !projectOpen}
+            running={active && !projectOpen && heroOnScreen}
             reducedMotion={reducedMotion}
             onActiveChange={(next) => setStripSlug(conveyor[next].slug)}
             onOpen={(next) => openProject(conveyor[next].slug)}
@@ -160,6 +173,8 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
       {projectOpen && (
         <ProjectPage project={project} previous={at(-1)} next={at(1)} onOpen={openProject} onContact={onContact} />
       )}
+      {/* Mounted afresh on each visit, so it starts from the page in the address. */}
+      {active && !projectOpen && <HomeProjects projects={projects} reducedMotion={reducedMotion} onOpenProject={openProject} />}
 
       <p className="visually-hidden" aria-live="polite">
         {projectOpen
