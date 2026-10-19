@@ -26,15 +26,23 @@ describe('parseProject', () => {
     expect(project.conveyorOrder).toBe(3);
   });
 
-  it('accepts an empty client and a project outside the strip', () => {
-    const project = parseProject({ ...apiProject, client: '', showInConveyor: false, conveyorOrder: null });
+  it('accepts an empty client, a project outside the strip and photos without a credit', () => {
+    const project = parseProject({
+      ...apiProject,
+      client: '',
+      showInConveyor: false,
+      conveyorOrder: null,
+      hero: { ...apiProject.hero, credit: null },
+    });
     expect(project.client).toBe('');
     expect(project.conveyorOrder).toBeNull();
+    expect(project.hero.credit).toBeUndefined();
   });
 
   it('rejects what the site cannot show', () => {
     const broken = [
       { ...apiProject, slug: 'Not A Slug' },
+      { ...apiProject, slug: 'a'.repeat(101) },
       { ...apiProject, type: 'castle' },
       { ...apiProject, status: 'paused' },
       { ...apiProject, location: { ...apiProject.location, lat: 120 } },
@@ -68,6 +76,11 @@ describe('the other shapes', () => {
     expect(parseSocialLink({ id: 3, label: 'Instagram', url: 'https://www.instagram.com/x' }).label).toBe('Instagram');
     expect(parseContactInfo({ email: 'studio@example.com' })).toEqual({ email: 'studio@example.com' });
     expect(parseSiteSettings({ faviconUrl: '/api/public/website/files/9' })).toEqual({ faviconUrl: '/api/public/website/files/9' });
+  });
+
+  it('accepts a contact email and a favicon that are not set yet', () => {
+    expect(parseContactInfo({ email: null })).toEqual({ email: null });
+    expect(parseSiteSettings({ faviconUrl: null })).toEqual({ faviconUrl: null });
   });
 
   it('refuses links that are not web addresses', () => {

@@ -26,6 +26,7 @@ export class ParseError extends Error {
 type Json = Record<string, unknown>;
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SLUG_MAX_LENGTH = 100;
 
 function object(value: unknown, what: string): Json {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ParseError(`${what} is not an object`);
@@ -73,7 +74,7 @@ function image(value: unknown, what: string): ProjectImage {
 export function parseProject(value: unknown): Project {
   const source = object(value, 'project');
   const slug = text(source, 'slug', 'project');
-  if (!SLUG_PATTERN.test(slug)) throw new ParseError(`project.slug "${slug}" is not URL-safe`);
+  if (!SLUG_PATTERN.test(slug) || slug.length > SLUG_MAX_LENGTH) throw new ParseError(`project.slug "${slug}" is not URL-safe`);
   const what = `project ${slug}`;
   const location = object(source.location, `${what}.location`);
   const gallery = source.gallery ?? [];
@@ -130,12 +131,16 @@ export function parseSocialLink(value: unknown): SocialLink {
   return { id: number(source, 'id', 'social link'), label: text(source, 'label', 'social link'), url };
 }
 
+/** The contact email is null until the company sets one. */
 export function parseContactInfo(value: unknown): ContactInfo {
-  return { email: text(object(value, 'contact'), 'email', 'contact') };
+  const source = object(value, 'contact');
+  return { email: source.email === null ? null : text(source, 'email', 'contact') };
 }
 
+/** The favicon is null until one is chosen. */
 export function parseSiteSettings(value: unknown): SiteSettings {
-  return { faviconUrl: resolveAssetUrl(text(object(value, 'settings'), 'faviconUrl', 'settings')) };
+  const source = object(value, 'settings');
+  return { faviconUrl: source.faviconUrl === null ? null : resolveAssetUrl(text(source, 'faviconUrl', 'settings')) };
 }
 
 /** Parses each row, dropping (and logging) any that do not fit, so the rest still show. */

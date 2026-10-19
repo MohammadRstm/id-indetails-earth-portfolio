@@ -22,12 +22,14 @@ export function ContactPage() {
         <ContactForm />
 
         <aside className="contact__details" aria-label="Contact details">
-          <div className="contact__item">
-            <h2 className="contact__label">Email</h2>
-            <a className="contact__value" href={`mailto:${contactInfo.email}`}>
-              {contactInfo.email}
-            </a>
-          </div>
+          {contactInfo.email && (
+            <div className="contact__item">
+              <h2 className="contact__label">Email</h2>
+              <a className="contact__value" href={`mailto:${contactInfo.email}`}>
+                {contactInfo.email}
+              </a>
+            </div>
+          )}
           <div className="contact__item">
             <h2 className="contact__label">Phone</h2>
             <ul>

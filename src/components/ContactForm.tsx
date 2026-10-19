@@ -132,14 +132,21 @@ export function ContactForm() {
           {send.status === 'sent' && 'Thank you. Your message has been sent and we will reply soon.'}
           {send.status === 'failed' &&
             (send.notConnected ? (
-              <>
-                Online sending is not switched on yet. Please email us at <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
-              </>
-            ) : (
+              contactInfo.email ? (
+                <>
+                  Online sending is not switched on yet. Please email us at{' '}
+                  <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
+                </>
+              ) : (
+                'Online sending is not switched on yet. Please call one of our studios below.'
+              )
+            ) : contactInfo.email ? (
               <>
                 Your message could not be sent. Please try again, or email us at{' '}
                 <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
               </>
+            ) : (
+              'Your message could not be sent. Please try again later, or call one of our studios below.'
             ))}
         </p>
       </div>

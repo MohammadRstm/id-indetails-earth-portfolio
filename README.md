@@ -108,7 +108,14 @@ The public endpoints agreed with the API (all under `/api/public/website`, anony
 | `GET /settings` | `getSiteSettings` | `siteSettings` in `data/site.ts` (the favicon; PNG, JPEG or WebP) |
 | `POST /contact-messages` (202) | `postContactMessage` | `sendContactMessage` in `data/contactSource.ts` |
 
-The contact form sends a hidden honeypot field, `website`; the API quietly drops messages where it is filled in. Image paths come back root-relative to the API (`/api/public/website/files/42`) and are resolved against `VITE_API_BASE_URL` when the API is on another origin.
+The contact form sends a hidden honeypot field, `website`; the API quietly drops messages where it is filled in.
+
+Besides 202 and a 400 with field errors, the contact form can get:
+- 429 `too_many_requests`: five messages an hour per visitor.
+- 503 `website_contact_unavailable`: no company email is set.
+- 503 `email_delivery_failed`: the mail server failed.
+
+The contact email and the favicon are `null` until they are set in the dashboard. The contact page then shows no email, and the site keeps its own icon. The full contract is `docs/website.md` in the API repository. Image paths come back root-relative to the API (`/api/public/website/files/42`) and are resolved against `VITE_API_BASE_URL` when the API is on another origin.
 
 `VITE_API_BASE_URL` (see `.env.example`, read at build time) sets where the API is; by default it is `/api/public/website` on the site's own origin, which needs the web server to proxy `/api` to the API. Keep the static data until the API is live, then switch the data sources and pages over to these functions.
 

@@ -16,12 +16,13 @@ export interface Service {
 }
 
 export interface ContactInfo {
-  /** Shown on the contact page; the contact form's messages are sent here. */
-  email: string;
+  /** Shown on the contact page; the contact form's messages are sent here. Null until the company sets one. */
+  email: string | null;
 }
 
 export interface SiteSettings {
-  faviconUrl: string;
+  /** Null until a favicon is chosen in the dashboard; the site then keeps its own icon. */
+  faviconUrl: string | null;
 }
 
 /** PLACEHOLDER: the address enquiries should reach. */
