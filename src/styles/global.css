@@ -896,6 +896,10 @@ img[data-loaded='false'] {
   margin-top: clamp(72px, 10vw, 150px);
 }
 
+.page__action {
+  margin-top: 40px;
+}
+
 /* Services */
 
 .services {

@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { ContactPage } from './components/ContactPage';
 import { Explorer } from './components/Explorer';
+import { ProjectNotFound } from './components/ProjectNotFound';
 import { ProjectsPage } from './components/ProjectsPage';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
@@ -15,25 +16,25 @@ export default function App() {
   const projects = useProjects();
   const reducedMotion = usePrefersReducedMotion();
   const list = projects.status === 'ready' ? projects.projects : null;
+  const { route, openProject, closeProject, goTo } = useSiteRoute();
   // While projects load, a project address is taken on trust so a shared link is not lost.
-  const isKnownProject = useCallback((slug: string) => list === null || list.some((project) => project.slug === slug), [list]);
-  const { route, openProject, closeProject, goTo } = useSiteRoute(isKnownProject);
-  const openSlug = route.page === 'project' ? route.slug : null;
-  const onGlobe = route.page === 'home' || route.page === 'project';
+  const projectMissing = route.page === 'project' && list !== null && !list.some((project) => project.slug === route.slug);
+  const openSlug = route.page === 'project' && !projectMissing ? route.slug : null;
+  const onGlobe = route.page === 'home' || openSlug !== null;
 
-  useScrollForRoute(route, reducedMotion);
+  useScrollForRoute(pathFor(route), openSlug !== null, reducedMotion);
 
   useEffect(() => {
     const project = openSlug ? list?.find((item) => item.slug === openSlug) : undefined;
     const titles: Record<Route['page'], string> = {
       home: `${SITE_TITLE} · Architecture`,
       projects: `Projects · ${SITE_TITLE}`,
-      project: project ? `${project.title} · ${SITE_TITLE}` : SITE_TITLE,
+      project: project ? `${project.title} · ${SITE_TITLE}` : projectMissing ? `Project not found · ${SITE_TITLE}` : SITE_TITLE,
       studio: `Studio · ${SITE_TITLE}`,
       contact: `Contact · ${SITE_TITLE}`,
     };
     document.title = titles[route.page];
-  }, [route.page, openSlug, list]);
+  }, [route.page, openSlug, list, projectMissing]);
 
   return (
     <>
@@ -67,6 +68,7 @@ export default function App() {
         )
       )}
       {route.page === 'projects' && list && <ProjectsPage projects={list} onOpenProject={openProject} />}
+      {projectMissing && <ProjectNotFound onNavigate={goTo} />}
       {route.page === 'studio' && <StudioPage onContact={() => goTo('contact')} />}
       {route.page === 'contact' && <ContactPage />}
 
@@ -81,9 +83,7 @@ export default function App() {
  * From far down a long page a smooth scroll would only sweep past empty
  * space, so it jumps instead.
  */
-function useScrollForRoute(route: Route, reducedMotion: boolean) {
-  const path = pathFor(route);
-  const isProject = route.page === 'project';
+function useScrollForRoute(path: string, isProject: boolean, reducedMotion: boolean) {
   useEffect(() => {
     const header = document.querySelector<HTMLElement>('.site-header');
     const top = isProject && header ? header.offsetHeight : 0;

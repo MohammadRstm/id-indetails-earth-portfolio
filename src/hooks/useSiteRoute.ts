@@ -40,7 +40,7 @@ const wasPushed = (state: unknown) => typeof state === 'object' && state !== nul
  * reloading: moving between them uses the History API, and the browser's
  * back and forward buttons move between the same views.
  */
-export function useSiteRoute(isKnownProject: (slug: string) => boolean) {
+export function useSiteRoute() {
   const [route, setRoute] = useState(() => routeFromPath(window.location.pathname));
 
   useEffect(() => {
@@ -49,12 +49,12 @@ export function useSiteRoute(isKnownProject: (slug: string) => boolean) {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // An address for a project that does not exist, or any other unknown address, falls back to the globe.
-  const valid = route.page === 'project' && !isKnownProject(route.slug) ? HOME : route;
-  const validPath = pathFor(valid);
+  // An unknown address falls back to the globe. A project address is kept even when no project has
+  // that slug, so the page can say the project was not found.
+  const path = pathFor(route);
   useEffect(() => {
-    if (window.location.pathname !== validPath) window.history.replaceState(null, '', validPath);
-  }, [validPath]);
+    if (window.location.pathname !== path) window.history.replaceState(null, '', path);
+  }, [path]);
 
   const openProject = useCallback((slug: string) => {
     const current = routeFromPath(window.location.pathname);
@@ -84,5 +84,5 @@ export function useSiteRoute(isKnownProject: (slug: string) => boolean) {
     setRoute({ page });
   }, []);
 
-  return { route: valid, openProject, closeProject, goTo };
+  return { route, openProject, closeProject, goTo };
 }
