@@ -47,7 +47,7 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
   const [heroOnScreen, setHeroOnScreen] = useState(true);
 
   // A project from the strip stays selected after its page closes, so the strip comes back at the same card.
-  // A project opened from elsewhere (the projects page, the globe) leaves the strip where it was.
+  // A project opened from elsewhere (the grid, the globe) leaves the strip where it was.
   const [lastOpenSlug, setLastOpenSlug] = useState(openSlug);
   if (openSlug !== lastOpenSlug) {
     setLastOpenSlug(openSlug);

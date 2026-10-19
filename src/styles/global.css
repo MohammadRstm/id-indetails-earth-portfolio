@@ -944,7 +944,7 @@ img[data-loaded='false'] {
   color: var(--ink-soft);
 }
 
-/* Projects page: filters and grid */
+/* The grid of every project: filters, cards and pages */
 
 .filters {
   display: grid;
@@ -990,6 +990,112 @@ img[data-loaded='false'] {
 .filters__input option {
   background: var(--bg-raised);
   color: var(--ink);
+}
+
+/* The dropdowns: the browser's box and arrow give way to the underline and a thin chevron. */
+select.filters__input {
+  appearance: none;
+  padding-right: 24px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238b8b91' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 2px center / 12px 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/*
+ * Where the browser allows it (current Chrome and Edge), the open list too: a dark rounded panel
+ * instead of the system menu. Elsewhere the open list stays the browser's own.
+ */
+@supports (appearance: base-select) {
+  select.filters__input,
+  select.filters__input::picker(select) {
+    appearance: base-select;
+  }
+
+  select.filters__input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 2px;
+    background: transparent;
+  }
+
+  select.filters__input:open {
+    border-bottom-color: var(--accent);
+  }
+
+  select.filters__input::picker-icon {
+    content: '';
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238b8b91' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat center / contain;
+    transition: rotate 0.2s var(--ease-out);
+  }
+
+  select.filters__input:open::picker-icon {
+    rotate: 180deg;
+  }
+
+  select.filters__input::picker(select) {
+    max-height: min(320px, 50vh);
+    margin-top: 8px;
+    padding: 6px;
+    overflow-y: auto;
+    border: 1px solid var(--hairline-strong);
+    border-radius: 12px;
+    background: rgba(19, 19, 21, 0.97);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    color: var(--ink);
+    opacity: 0;
+    translate: 0 -4px;
+    transition:
+      opacity 0.18s ease,
+      translate 0.18s var(--ease-out),
+      overlay 0.18s allow-discrete,
+      display 0.18s allow-discrete;
+  }
+
+  select.filters__input:open::picker(select) {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  @starting-style {
+    select.filters__input:open::picker(select) {
+      opacity: 0;
+      translate: 0 -4px;
+    }
+  }
+
+  select.filters__input option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    cursor: pointer;
+  }
+
+  select.filters__input option:hover,
+  select.filters__input option:focus-visible {
+    outline: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ink);
+  }
+
+  select.filters__input option:checked {
+    color: var(--ink);
+  }
+
+  select.filters__input option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--accent);
+  }
 }
 
 .filters__clear {
@@ -1661,5 +1767,9 @@ img[data-loaded='false'] {
   .explorer__stage,
   .explorer__frame {
     transition: none;
+  }
+
+  select.filters__input::picker(select) {
+    translate: none;
   }
 }

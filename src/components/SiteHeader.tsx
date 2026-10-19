@@ -3,13 +3,12 @@ import { LogoMark } from './icons';
 import { PageLink } from './PageLink';
 
 const NAV: { page: Page; label: string }[] = [
-  { page: 'projects', label: 'Projects' },
   { page: 'studio', label: 'Studio' },
   { page: 'contact', label: 'Contact' },
 ];
 
 interface SiteHeaderProps {
-  /** The page in view; a project page counts as Projects, and the globe as none of them. */
+  /** The page in view; the globe and the project pages count as none of them. */
   current: Page;
   onNavigate: (page: Page) => void;
 }

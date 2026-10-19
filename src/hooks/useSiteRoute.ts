@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Page = 'home' | 'projects' | 'studio' | 'contact';
+export type Page = 'home' | 'studio' | 'contact';
 
-export type Route = { page: Page } | { page: 'project'; slug: string };
+export type Route =
+  /** `grid` opens the home page scrolled down to its grid of projects rather than at the globe. */
+  | { page: Page; grid?: true }
+  | { page: 'project'; slug: string };
 
 const HOME: Route = { page: 'home' };
 const PROJECT_PATH = /^\/projects\/([^/]+)\/?$/;
-const PAGE_PATHS: Record<Page, string> = { home: '/', projects: '/projects', studio: '/studio', contact: '/contact' };
+const PAGE_PATHS: Record<Page, string> = { home: '/', studio: '/studio', contact: '/contact' };
+/** The address of the old projects page, which is now the grid on the home page. */
+const OLD_PROJECTS_PATH = '/projects';
+/** The element id of the home page's grid, which a `grid` route scrolls to. */
+export const GRID_ID = 'projects';
 
 interface RouteState {
   /** On entries this page pushed for a project, so closing it can step back instead of piling up entries. */
@@ -26,6 +33,7 @@ export function routeFromPath(pathname: string): Route {
     }
   }
   const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (trimmed === OLD_PROJECTS_PATH) return { page: 'home', grid: true };
   const page = (Object.keys(PAGE_PATHS) as Page[]).find((candidate) => PAGE_PATHS[candidate] === trimmed);
   return page ? { page } : HOME;
 }
@@ -45,7 +53,7 @@ export function savedScrollY(state: unknown): number | null {
 const rememberScroll = () => window.history.replaceState({ ...window.history.state, scrollY: window.scrollY } satisfies RouteState, '');
 
 /**
- * The page and the open project live in the address bar (`/`, `/projects`,
+ * The page and the open project live in the address bar (`/`,
  * `/projects/<slug>`, `/studio`, `/contact`) without the page ever
  * reloading: moving between them uses the History API, and the browser's
  * back and forward buttons move between the same views.
@@ -59,11 +67,12 @@ export function useSiteRoute() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // An unknown address falls back to the globe. A project address is kept even when no project has
-  // that slug, so the page can say the project was not found.
+  // An unknown address falls back to the globe, and the old projects page to the home page's grid, keeping
+  // its query so a shared filtered link keeps its filters. A project address is kept even when no project
+  // has that slug, so the page can say the project was not found.
   const path = pathFor(route);
   useEffect(() => {
-    if (window.location.pathname !== path) window.history.replaceState(null, '', path);
+    if (window.location.pathname !== path) window.history.replaceState(null, '', `${path}${window.location.search}`);
   }, [path]);
 
   const openProject = useCallback((slug: string) => {
@@ -80,7 +89,7 @@ export function useSiteRoute() {
     setRoute(next);
   }, []);
 
-  /** Back to wherever the project was opened from: the globe or the projects page. */
+  /** Back to wherever the project was opened from: the globe, the grid below it, or another project's page. */
   const closeProject = useCallback(() => {
     if (routeFromPath(window.location.pathname).page !== 'project') return;
     if (wasPushed(window.history.state)) {
@@ -99,5 +108,12 @@ export function useSiteRoute() {
     setRoute({ page });
   }, []);
 
-  return { route, openProject, closeProject, goTo };
+  /** The home page, scrolled down to its grid of projects. */
+  const showGrid = useCallback(() => {
+    rememberScroll();
+    window.history.pushState(null, '', PAGE_PATHS.home);
+    setRoute({ page: 'home', grid: true });
+  }, []);
+
+  return { route, openProject, closeProject, goTo, showGrid };
 }

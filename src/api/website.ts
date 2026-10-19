@@ -49,7 +49,7 @@ async function request<T>(path: string, parse: (body: unknown) => T, init: Reque
 
 const get = <T>(path: string, parse: (body: unknown) => T, signal?: AbortSignal) => request(path, parse, { signal });
 
-/** Every published project: all go on the globe and the projects page; the strip shows those marked for it. */
+/** Every published project: all go on the globe and the grid below it; the strip shows those marked for it. */
 export const getProjects = (signal?: AbortSignal): Promise<Project[]> =>
   get('/projects', (body) => parseList(body, parseProject, 'project'), signal);
 

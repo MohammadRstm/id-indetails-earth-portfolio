@@ -4,8 +4,6 @@ import { pathFor, routeFromPath, savedScrollY } from './useSiteRoute';
 describe('site addresses', () => {
   it('reads the pages', () => {
     expect(routeFromPath('/')).toEqual({ page: 'home' });
-    expect(routeFromPath('/projects')).toEqual({ page: 'projects' });
-    expect(routeFromPath('/projects/')).toEqual({ page: 'projects' });
     expect(routeFromPath('/studio')).toEqual({ page: 'studio' });
     expect(routeFromPath('/studio/')).toEqual({ page: 'studio' });
     expect(routeFromPath('/contact')).toEqual({ page: 'contact' });
@@ -14,6 +12,12 @@ describe('site addresses', () => {
   it('reads a project slug from its address', () => {
     expect(routeFromPath('/projects/alfama-lofts')).toEqual({ page: 'project', slug: 'alfama-lofts' });
     expect(routeFromPath('/projects/alfama-lofts/')).toEqual({ page: 'project', slug: 'alfama-lofts' });
+  });
+
+  it('takes the old projects page to the grid on the home page', () => {
+    expect(routeFromPath('/projects')).toEqual({ page: 'home', grid: true });
+    expect(routeFromPath('/projects/')).toEqual({ page: 'home', grid: true });
+    expect(pathFor(routeFromPath('/projects'))).toBe('/');
   });
 
   it('treats every other address as the globe', () => {
@@ -29,7 +33,6 @@ describe('site addresses', () => {
   it('round-trips every route through its address', () => {
     for (const route of [
       { page: 'home' },
-      { page: 'projects' },
       { page: 'studio' },
       { page: 'contact' },
       { page: 'project', slug: 'alfama-lofts' },
