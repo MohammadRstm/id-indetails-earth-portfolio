@@ -38,6 +38,7 @@ Instead the site uses React Three Fiber with custom `ShaderMaterial`s and `frame
 
 ```text
 src/
+  analytics/   Google Analytics: the cookie question, page views and events
   data/        Typed project model and the data source
   globe/       Everything inside and around the 3D canvas
   components/  Page UI
@@ -54,6 +55,8 @@ src/
 - `site.ts` holds the company details shown across the site (contact info, social links, services, site settings) and `offices.ts` the studios (position, address, phone), in the same shapes as the API. **Every value in both is a placeholder**; these two files are the place to put the real details.
 - `contactSource.ts` exposes `sendContactMessage()`, which posts the message to the API (`postContactMessage`). `contactFailure()` in `lib/contactForm.ts` turns a failed send into what the form tells the visitor.
 
+**`src/analytics`** is Google Analytics 4 (see "Analytics" below): `analytics.ts` loads Google's tag once a visitor accepts, and sends the page views and events; `consent.ts` keeps the visitor's answer; `pageLocation.ts` cleans the page address before it is sent.
+
 **`src/api`** is the client for the public website API (`/api/public/website`, built in the ID-Indetails backend): one function per endpoint in `website.ts`, checks of every reply against the shapes the site relies on in `parsers.ts` (a broken row in a list is dropped and logged rather than taking the page down), errors from the API's `ApiErrorResponse` shape in `errors.ts`, and the base URL and image-address handling in `config.ts`. Only the contact form uses it so far; everything else still reads `src/data`. See "Connecting to the API" below.
 
 **`src/components`**
@@ -63,7 +66,8 @@ src/
 - `ProjectCaption.tsx` is the name, place and summary beside the strip. `ProjectDock.tsx` is the photograph held to the right of the globe on a project page; it fades in with the Web Animations API once the strip has faded out, animating only opacity and `transform` so the GPU compositor keeps it smooth while the page sets up the project view. `ProjectPage.tsx` holds `ProjectHeading` (the title at the top left, above the globe's close-up) and `ProjectPage` (the page below it). `ProjectGallery.tsx` is the grid of the project's photos and the viewer they open (a modal `<dialog>`).
 - `HomeProjects.tsx` is the grid of every project under the globe: `ProjectFilterBar.tsx` (the search, filters and sort, with the logic in `lib/projectFilters.ts`), the cards (`ProjectCard.tsx`) and the pages (`lib/pagination.ts`).
 - `StudioPage.tsx` and `ContactPage.tsx` are the other two pages; `ContactForm.tsx` is the enquiry form (its checks are in `lib/contactForm.ts`). The maps are Google's keyless embed of each office's coordinates, darkened with a CSS filter to suit the site.
-- `SiteHeader.tsx`, `SiteFooter.tsx` (social links), `PageLink.tsx`, `MotionToggle.tsx`, `ScrollLink.tsx` and `icons.tsx` are the rest of the page.
+- `PrivacyPage.tsx` is the privacy notice and `ConsentBanner.tsx` the cookie question (see "Analytics").
+- `SiteHeader.tsx`, `SiteFooter.tsx` (social links, the privacy notice and Cookie settings), `PageLink.tsx`, `MotionToggle.tsx`, `ScrollLink.tsx` and `icons.tsx` are the rest of the page.
 
 **`src/globe`**
 
@@ -89,12 +93,31 @@ src/
 - **Every project under the globe.** Below the globe and the strip, every project (not just the strip's) is in a grid of cards, 12 to a page, with numbered pages under it. Above it are a search (title, client, city and country, ignoring case and accents), filters for type, status, year and country (each offering only the values the projects have), a sort (newest, oldest, title; newest first by default) and a Clear filters button; changing any of them goes back to the first page. The filters and the page live in the address (`/?type=villa&year=2024&page=2`), so a filtered list can be shared and is still there after opening a project and coming back. From a project opened here that is not in the strip, Previous and Next move through every project rather than the strip's. While the grid is in view the strip stops drifting and the globe stops drawing. The dropdowns are fully styled where the browser supports it (`appearance: base-select`, in current Chrome and Edge); elsewhere the closed control matches and the open list is the browser's own.
 - **Choosing.** The strip can be scrolled with the wheel or trackpad, dragged and flung; the Previous and Next buttons and the Left and Right arrow keys step through projects. After any of these the drift waits about six seconds, then carries on. It also waits while the mouse rests on the strip. The strip loops forever. The Pause button stops the drift and the ripples.
 - **Opening a project.** Clicking a card in the strip or the grid, a blue dot on the globe or View project opens that project, whether or not it is one of the strip's. The strip and the caption fade out, and the project's photograph fades back in as a panel on the right; the planet glides into the bottom-left corner, leaning so its edge runs diagonally, turns to the place and moves in, with the project's title above it at the top left. The page also scrolls down by the header's height, so the header moves out of sight and the whole photograph shows. On narrow screens there is no room beside the globe, so the photograph opens the page below instead. The project page follows below: the description and the key facts, the project's photos as a grid, an enquiry prompt and the previous and next projects. Clicking a photo opens it full screen over the page: Previous and Next, the Left and Right arrow keys or a swipe move through the photos (wrapping round at either end), the row of small photos below jumps straight to any one, and Escape, the close button or a click beside the photo closes it, returning focus to the photo that opened it. While it is open the arrow keys and Escape belong to it, so they don't change or close the project. Previous and next keep the close-up and turn the globe to the new place. All projects, the wordmark or Escape go back; the globe zooms out and the strip returns at the same project.
-- **Pages and addresses.** The site has four kinds of address: `/` (the globe and the grid), `/projects/<slug>`, `/studio` and `/contact`. The page never reloads: moving between them uses the History API, so links can be shared and the browser's Back and Forward buttons move between them with the same animations. Moving between projects replaces the entry, so Back always returns to where the first project was opened from, scrolled to where it was left (for example the same place in the grid). An unknown address falls back to the globe. The old projects page, `/projects`, now opens the home page scrolled down to the grid, keeping any filters in its address (`/projects?type=villa` becomes `/?type=villa`). A project address that matches no project (for example an old link to a project that has since been renamed) keeps its address and shows a "Project not found" page with a link to the grid. The globe stays mounted, hidden and idle, behind the other pages, so it is ready the moment you come back.
+- **Pages and addresses.** The site has five kinds of address: `/` (the globe and the grid), `/projects/<slug>`, `/studio`, `/contact` and `/privacy` (the privacy notice, linked from the footer and the cookie question). The page never reloads: moving between them uses the History API, so links can be shared and the browser's Back and Forward buttons move between them with the same animations. Moving between projects replaces the entry, so Back always returns to where the first project was opened from, scrolled to where it was left (for example the same place in the grid). An unknown address falls back to the globe. The old projects page, `/projects`, now opens the home page scrolled down to the grid, keeping any filters in its address (`/projects?type=villa` becomes `/?type=villa`). A project address that matches no project (for example an old link to a project that has since been renamed) keeps its address and shows a "Project not found" page with a link to the grid. The globe stays mounted, hidden and idle, behind the other pages, so it is ready the moment you come back.
 - **Contact form.** Name, email and message are required; phone is optional. Mistakes are shown beside each field and the first one is focused; corrected fields clear as you type. A valid message is sent to the API, which emails it to the studio. Fields the server rejects are shown beside them the same way; too many messages, sending switched off or any other failure ends with a note asking the visitor to email or call instead.
+- **Cookie question.** In a build with a Google Analytics measurement ID, a first visit asks whether the site may use Google Analytics cookies, with Accept and Decline side by side; the page stays usable behind it. The answer is kept in the browser for a year, so the question isn't asked again on every visit; "Cookie settings" in the footer (and on the privacy page) asks it again, and declining after accepting removes Google Analytics' cookies. A browser sending Global Privacy Control is never asked and never counted. Without an ID there is no question and no tracking.
 - **Keyboard and screen readers.** The strip and the globe markers are pointer-only (`aria-hidden`, `tabIndex={-1}`); the caption's View project button and the Previous and Next buttons reach every project, and a live region announces the current one. The skip link jumps to the main content of whichever page is showing.
 - **Reduced motion.** With `prefers-reduced-motion` the strip does not drift and jumps instead of gliding, the globe jumps to each place and in and out of the close-up, the ripples are replaced by a still ring and the page transitions are near-instant.
 - Without WebGL 2 the globe is replaced by a notice and the strip and project pages keep working. If the country outlines fail to load, a graticule globe is shown with a notice.
 - **Offices.** Red points mark the studios in Beirut and Abidjan (`data/offices.ts`), each labelled ID-Indetails. They do not move and cannot be clicked.
+
+## Analytics
+
+Google Analytics 4, through Google's tag (`gtag.js`), loaded by `src/analytics/analytics.ts` and only after the visitor accepts ("basic" consent mode: nothing reaches Google before that). Advertising consent is always denied, and Google signals and ad personalisation are off. The API reads the numbers back for the app's Website area (`docs/website.md` in the API repository, "Analytics", which also lists every setting to make in Google Analytics).
+
+- **Page views:** the site sends them itself (`send_page_view: false`), one per page: when the path changes, after the page's title is set (a project's waits for the projects to load). The same path again is the same page, so typing a search or changing a filter on the grid, paging it, or the skip link count nothing. Only the path is sent; on the page a visit lands on, its campaign tags (`utm_*`, `gclid`, `gbraid`, `wbraid`) too, read before the grid tidies the address. In Google Analytics, "Page changes based on browser history events" must be off, or every search typed on the grid would count as page views.
+- **Events** (`AnalyticsEvents` in `analytics.ts` lists every parameter, none of which can hold what a visitor typed or a contact detail):
+
+  | Event | When | Parameters |
+  |---|---|---|
+  | `generate_lead` | The API accepted a contact message (not when the hidden robot field is filled in) | `lead_source: contact_form` |
+  | `email_click` | The studio's email link, on the contact page or in the form's failure note | `link_location` |
+  | `phone_click` | A studio's phone number, in the contact details or on its office card | `link_location`, `office_city` |
+  | `contact_cta_click` | "Contact us" on a project page or the Studio page | `cta_location`, `project_slug` |
+
+  `generate_lead`, `email_click` and `phone_click` are marked as key events in Google Analytics. Outbound links (the social links, Open in Google Maps) are counted by Google's enhanced measurement.
+- **The measurement ID** (`G-…`) is set at build time by `VITE_GA_MEASUREMENT_ID` (see `.env.example`). The Publish workflow passes the repository variable `GA_MEASUREMENT_ID`; development, CI and preview builds have none.
+- **The privacy notice** (`components/PrivacyPage.tsx`) is a draft: the company's details at the top of the file (`NOTICE`) are placeholders, shown in brackets, to fill in before the site goes live.
 
 ## Connecting to the API
 
@@ -131,7 +154,7 @@ Because the addresses are real paths (`/projects`, `/studio`, `/projects/alfama-
 
 - Files that exist are served; every other address gets `index.html`.
 - `/api/public/website/` is proxied to the API container (`http://api:8080`, resolved per request through Docker's DNS), so the browser stays on one origin. Every other `/api/` path answers 404: nothing else of the API is reachable through the website.
-- Headers: a Content Security Policy (the site itself plus the Google Maps embeds), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. The hashed bundles in `/assets/` are cached for a year and the page itself is never cached, so a new deployment shows at once.
+- Headers: a Content Security Policy (the site itself, the Google Maps embeds, and Google Analytics' tag and measurement hosts), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. The hashed bundles in `/assets/` are cached for a year and the page itself is never cached, so a new deployment shows at once.
 - `GET /healthz` answers `ok` for the container's health check.
 - It runs read-only with `--tmpfs /tmp`. TLS is handled in front of it (Caddy on the server).
 
@@ -154,6 +177,8 @@ docker run --rm -p 8080:8080 --read-only --tmpfs /tmp id-indetails-website
 The actions are pinned to commits, as in the backend.
 
 **Publishing and deploying** (`.github/workflows/publish.yml`) is started by hand (Actions → Publish → Run workflow):
+
+- It builds with the Google Analytics measurement ID from the repository variable `GA_MEASUREMENT_ID` (Settings → Secrets and variables → Actions → Variables). Without the variable the image tracks nothing.
 
 - It runs the checks, then pushes `ghcr.io/mohammadrstm/id-indetails-website:sha-<7>`.
 - With **deploy** ticked, and after a reviewer approves the `production` environment, it logs the server in to GHCR, sets `WEBSITE_TAG` in the server's `.env` and restarts only the `website` service. It reads the API's and the client's image tags from the server's `deployed.env`, which the API's deploy writes, because the compose file needs every tag; so the API must have been deployed at least once.
@@ -178,13 +203,14 @@ The logo is the split "0" from the studio's PNG mark, redrawn as vector shapes w
 
 ## Testing
 
-`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping, marker sizes, which side the type tag goes), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address, and where a page was left), `lib/projectFilters.ts` (the grid's search, filters, sorting and their address form), `lib/conveyor.ts` (which projects the strip shows), `lib/gallery.ts` (stepping through a project's photos), `lib/pagination.ts` (the grid's pages and their address form), `api/` (reading the API's replies and errors against a stubbed `fetch`), `lib/contactForm.ts` (the form's checks), `data/contactSource.ts` (that it posts to the API and passes its errors on) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
+`npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping, marker sizes, which side the type tag goes), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address, and where a page was left), `lib/projectFilters.ts` (the grid's search, filters, sorting and their address form), `lib/conveyor.ts` (which projects the strip shows), `lib/gallery.ts` (stepping through a project's photos), `lib/pagination.ts` (the grid's pages and their address form), `api/` (reading the API's replies and errors against a stubbed `fetch`), `lib/contactForm.ts` (the form's checks), `analytics/` (nothing loaded or sent before Accept or without an ID, one page view per page, cleaned addresses, events, a change of mind removing the cookies, Global Privacy Control, and the kept answer), `data/contactSource.ts` (that it posts to the API and passes its errors on) and sanity checks on `data/demoProjects.ts`, including that every referenced photograph exists under `public/`, has alt text, and is used only once. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
 
 ## Known limitations
 
 - Projects are local demonstration data. The API client (`src/api`) is written and tested against the agreed contract; apart from the contact form, the site switches over once the API is live.
 - The contact details shown on the site, the social links and the services are placeholders (`data/site.ts`, `data/offices.ts`). The contact form sends to the API, which emails the studio's address (a fallback address until one is set in the dashboard).
-- The Google maps load as soon as the Contact page opens, which sets Google's cookies; a cookie notice may be needed where the law requires one.
+- The Google maps load when the Contact page's maps come into view, whatever the visitor answered to the cookie question, and Google may set its cookies; the privacy notice says so. Loading them only after consent would need a click-to-load placeholder.
+- The privacy notice's company details are placeholders (`NOTICE` in `components/PrivacyPage.tsx`).
 - The sun is fixed relative to the camera, so the lit face is a stylised look, not the real time of day.
 - The production bundle is a single JavaScript chunk, mostly three.js and React Three Fiber, and Vite warns about its size. Loading the globe lazily would split it.
 - The 3D view needs WebGL 2. Without it, only the strip, captions and project pages are available.

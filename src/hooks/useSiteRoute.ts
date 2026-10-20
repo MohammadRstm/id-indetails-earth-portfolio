@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Page = 'home' | 'studio' | 'contact';
+export type Page = 'home' | 'studio' | 'contact' | 'privacy';
 
 export type Route =
   /** `grid` opens the home page scrolled down to its grid of projects rather than at the globe. */
@@ -9,7 +9,7 @@ export type Route =
 
 const HOME: Route = { page: 'home' };
 const PROJECT_PATH = /^\/projects\/([^/]+)\/?$/;
-const PAGE_PATHS: Record<Page, string> = { home: '/', studio: '/studio', contact: '/contact' };
+const PAGE_PATHS: Record<Page, string> = { home: '/', studio: '/studio', contact: '/contact', privacy: '/privacy' };
 /** The address of the old projects page, which is now the grid on the home page. */
 const OLD_PROJECTS_PATH = '/projects';
 /** The element id of the home page's grid, which a `grid` route scrolls to. */
@@ -54,7 +54,7 @@ const rememberScroll = () => window.history.replaceState({ ...window.history.sta
 
 /**
  * The page and the open project live in the address bar (`/`,
- * `/projects/<slug>`, `/studio`, `/contact`) without the page ever
+ * `/projects/<slug>`, `/studio`, `/contact`, `/privacy`) without the page ever
  * reloading: moving between them uses the History API, and the browser's
  * back and forward buttons move between the same views.
  */

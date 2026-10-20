@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { track } from '../analytics/analytics';
 import { sendContactMessage } from '../data/contactSource';
 import { contactInfo } from '../data/site';
 import {
@@ -60,8 +61,11 @@ export function ContactForm() {
     event.preventDefault();
     if (showErrors(validateContactMessage(values))) return;
     setSend({ status: 'sending' });
+    const message = cleanContactMessage(values);
     try {
-      await sendContactMessage(cleanContactMessage(values));
+      await sendContactMessage(message);
+      // a robot's message (the hidden field filled in) is answered the same, but isn't a lead
+      if (message.website === '') track('generate_lead', { lead_source: 'contact_form' });
       setSend({ status: 'sent' });
       setValues(emptyContactMessage);
     } catch (error: unknown) {
@@ -156,7 +160,11 @@ export function ContactForm() {
           {send.status === 'failed' &&
             (contactInfo.email ? (
               <>
-                {FAILED[send.reason].lead} <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
+                {FAILED[send.reason].lead}{' '}
+                <a href={`mailto:${contactInfo.email}`} onClick={() => track('email_click', { link_location: 'contact_form' })}>
+                  {contactInfo.email}
+                </a>
+                .
               </>
             ) : (
               FAILED[send.reason].withoutEmail
