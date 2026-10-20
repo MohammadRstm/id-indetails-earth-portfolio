@@ -134,6 +134,58 @@
   }
 }
 
+/* The selected place's type tag: its kind of project, up and to one side, with a pointer. */
+
+.globe-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Hidden past the horizon, and in a project's close-up, where the project's own title is. */
+.globe-tag[data-visible='false'],
+.globe-stage[data-interactive='false'] .globe-tag {
+  visibility: hidden;
+}
+
+.globe-tag__pointer {
+  position: absolute;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(61, 139, 255, 0.85);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.globe-tag__label {
+  position: absolute;
+  transform: translateY(50%);
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-stretch: 112%;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8fb8ff;
+  text-shadow:
+    0 0 10px rgba(10, 10, 11, 0.95),
+    0 1px 2px rgba(10, 10, 11, 0.9);
+  animation: tag-in 0.4s var(--ease-out) both;
+}
+
+@keyframes tag-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.globe-tag[data-side='right'] .globe-tag__pointer {
+  transform: scaleX(-1);
+}
+
 /* Studio labels beside the red dots. ---------------------------------------- */
 
 .globe-office {

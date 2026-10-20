@@ -111,6 +111,21 @@ export function markerScales(places: Pick<LocationGroup, 'id' | 'lat' | 'lng'>[]
   return scales;
 }
 
+/**
+ * An office label runs east of its red dot, and a tag up and to the west of its place: a place this far east of
+ * an office (degrees of longitude, with this much latitude either way) puts its tag on the east side instead.
+ */
+const OFFICE_LABEL_SPAN = { minEast: 2, maxEast: 40, lat: 15 };
+
+/** Which side of its place the type tag sits on: up and to the left, unless an office's label is there. */
+export function tagSide(place: { lat: number; lng: number }, offices: { lat: number; lng: number }[]): 'left' | 'right' {
+  const officeInTheWay = offices.some((office) => {
+    const east = wrapAngle((place.lng - office.lng) * DEG) / DEG;
+    return east > OFFICE_LABEL_SPAN.minEast && east < OFFICE_LABEL_SPAN.maxEast && Math.abs(place.lat - office.lat) < OFFICE_LABEL_SPAN.lat;
+  });
+  return officeInTheWay ? 'right' : 'left';
+}
+
 export interface RouteEdge {
   from: string;
   to: string;

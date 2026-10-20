@@ -11,6 +11,7 @@ import {
   MAX_FOCUS_PITCH,
   MIN_MARKER_SCALE,
   minimumSpanningTree,
+  tagSide,
   orientationFor,
   wrapAngle,
 } from './geo';
@@ -211,6 +212,28 @@ describe('markerScales', () => {
     const scales = markerScales([place('a', 0, 0), place('b', 0, 0.06 / DEG)]);
     expect(scales.get('a')).toBeCloseTo(0.5);
     expect(scales.get('b')).toBeCloseTo(0.5);
+  });
+});
+
+describe('tagSide', () => {
+  const offices = [
+    { lat: 33.8938, lng: 35.5018 },
+    { lat: 5.36, lng: -4.0083 },
+  ];
+
+  it('puts the tag on the left, away from an office label at the same place or far off', () => {
+    expect(tagSide({ lat: 33.8959, lng: 35.4784 }, offices)).toBe('left');
+    expect(tagSide({ lat: 34.2553, lng: 35.6581 }, offices)).toBe('left');
+    expect(tagSide({ lat: 38.7, lng: -9.1 }, offices)).toBe('left');
+    expect(tagSide({ lat: -33.9, lng: 151.2 }, offices)).toBe('left');
+  });
+
+  it('puts the tag on the right of a place a little east of an office, where its label runs', () => {
+    expect(tagSide({ lat: 25.1, lng: 55.1 }, offices)).toBe('right');
+  });
+
+  it('keeps it on the left when the office is far north or south', () => {
+    expect(tagSide({ lat: -8.5, lng: 40 }, offices)).toBe('left');
   });
 });
 
