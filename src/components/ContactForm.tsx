@@ -1,8 +1,9 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { ContactNotConnectedError, sendContactMessage } from '../data/contactSource';
+import { sendContactMessage } from '../data/contactSource';
 import { contactInfo } from '../data/site';
 import {
   cleanContactMessage,
+  contactFailure,
   emptyContactMessage,
   MESSAGE_MAX_LENGTH,
   validateContactMessage,
@@ -11,7 +12,22 @@ import {
   type ContactMessage,
 } from '../lib/contactForm';
 
-type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'failed'; notConnected: boolean };
+type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'failed'; reason: 'busy' | 'unavailable' | 'failed' };
+
+const FAILED: Record<'busy' | 'unavailable' | 'failed', { lead: string; withoutEmail: string }> = {
+  busy: {
+    lead: 'You have sent several messages in the last hour. Please try again later, or email us at',
+    withoutEmail: 'You have sent several messages in the last hour. Please try again later, or call one of our studios below.',
+  },
+  unavailable: {
+    lead: 'Online sending is not available right now. Please email us at',
+    withoutEmail: 'Online sending is not available right now. Please call one of our studios below.',
+  },
+  failed: {
+    lead: 'Your message could not be sent. Please try again, or email us at',
+    withoutEmail: 'Your message could not be sent. Please try again later, or call one of our studios below.',
+  },
+};
 
 const FIELDS: { name: ContactField; label: string; type: string; autoComplete: string; optional?: boolean }[] = [
   { name: 'name', label: 'Name', type: 'text', autoComplete: 'name' },
@@ -33,23 +49,30 @@ export function ContactForm() {
     if (errors[field]) setErrors((current) => ({ ...current, [field]: validateContactMessage({ ...values, [field]: value })[field] }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const found = validateContactMessage(values);
+  const showErrors = (found: ContactErrors): boolean => {
     setErrors(found);
     const firstInvalid = (Object.keys(found) as ContactField[])[0];
-    if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
-      return;
-    }
+    if (firstInvalid) formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+    return Boolean(firstInvalid);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (showErrors(validateContactMessage(values))) return;
     setSend({ status: 'sending' });
     try {
       await sendContactMessage(cleanContactMessage(values));
       setSend({ status: 'sent' });
       setValues(emptyContactMessage);
     } catch (error: unknown) {
-      if (!(error instanceof ContactNotConnectedError)) console.error('Contact message failed to send', error);
-      setSend({ status: 'failed', notConnected: error instanceof ContactNotConnectedError });
+      const failure = contactFailure(error);
+      if (failure.kind === 'fields') {
+        setSend({ status: 'idle' });
+        showErrors(failure.errors);
+        return;
+      }
+      if (failure.kind === 'failed') console.error('Contact message failed to send', error);
+      setSend({ status: 'failed', reason: failure.kind });
     }
   };
 
@@ -131,22 +154,12 @@ export function ContactForm() {
         <p className="contact-form__status" role="status" data-tone={send.status === 'failed' ? 'error' : undefined}>
           {send.status === 'sent' && 'Thank you. Your message has been sent and we will reply soon.'}
           {send.status === 'failed' &&
-            (send.notConnected ? (
-              contactInfo.email ? (
-                <>
-                  Online sending is not switched on yet. Please email us at{' '}
-                  <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
-                </>
-              ) : (
-                'Online sending is not switched on yet. Please call one of our studios below.'
-              )
-            ) : contactInfo.email ? (
+            (contactInfo.email ? (
               <>
-                Your message could not be sent. Please try again, or email us at{' '}
-                <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
+                {FAILED[send.reason].lead} <a href={`mailto:${contactInfo.email}`}>{contactInfo.email}</a>.
               </>
             ) : (
-              'Your message could not be sent. Please try again later, or call one of our studios below.'
+              FAILED[send.reason].withoutEmail
             ))}
         </p>
       </div>
