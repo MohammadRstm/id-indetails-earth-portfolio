@@ -15,6 +15,8 @@ const WHEEL_SETTLE_SECONDS = 0.16;
 const DRAG_THRESHOLD_PX = 6;
 const FLING_SECONDS = 0.28;
 const CARD_GAP_PX = 18;
+/** The cards' shape, width over height: landscape, like the projects' photos. */
+const CARD_ASPECT = 3 / 2;
 /** Cards away from the centre shrink to this scale. */
 const SIDE_SCALE = 0.8;
 
@@ -112,7 +114,7 @@ export function ProjectStrip({
     const measure = () => {
       const across = axis === 'y' ? strip.clientWidth : strip.clientHeight;
       const along = axis === 'y' ? strip.clientHeight : strip.clientWidth;
-      const cardLength = axis === 'y' ? across * 1.25 : across * 0.8;
+      const cardLength = axis === 'y' ? across / CARD_ASPECT : across * CARD_ASPECT;
       strip.style.setProperty('--card-w', `${axis === 'y' ? across : cardLength}px`);
       strip.style.setProperty('--card-h', `${axis === 'y' ? cardLength : across}px`);
       const pitch = cardLength * ((1 + SIDE_SCALE) / 2) + CARD_GAP_PX;

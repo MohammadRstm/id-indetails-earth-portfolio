@@ -245,8 +245,8 @@ img[data-loaded='false'] {
   position: relative;
   z-index: 1;
   display: grid;
-  /* Globe, then the strip beside it, then the caption. */
-  grid-template-columns: minmax(0, 1fr) clamp(200px, 16vw, 270px) clamp(250px, 21vw, 340px);
+  /* Globe, then the strip of landscape cards beside it, then the caption. */
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 440px) clamp(250px, 21vw, 380px);
   grid-template-rows: minmax(0, 1fr);
   column-gap: clamp(28px, 3.6vw, 72px);
   height: var(--hero-h);
@@ -260,6 +260,22 @@ img[data-loaded='false'] {
   min-height: 0;
 }
 
+/*
+ * The globe fills only part of its frame (86%, or 92% in a frame under 600px wide: see globeFill in
+ * GlobeStage.tsx), so the frame reaches into the margin and the gap by about half the rest: the globe's own edge
+ * then lines up with the page's margin, and sits as far from the strip as the strip from the caption.
+ */
+@media (min-width: 960px) {
+  .explorer[data-view='overview'] .explorer__frame {
+    margin-inline: -4%;
+  }
+}
+
+@media (min-width: 1300px) {
+  .explorer[data-view='overview'] .explorer__frame {
+    margin-inline: -7%;
+  }
+}
 
 /* The project page: the globe takes everything left of the docked photograph. */
 .explorer[data-view='project'] .explorer__frame {

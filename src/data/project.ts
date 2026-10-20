@@ -42,7 +42,7 @@ export interface Project {
   /** Year of completion, or the expected year while the project is in progress. */
   year: number;
   description: string;
-  /** Portrait crop used in the project strip. */
+  /** The card picture: a 3:2 landscape card in the strip, a 4:5 card in the grid, cropped to fit. */
   thumbnail: string;
   hero: ProjectImage;
   gallery: ProjectImage[];
