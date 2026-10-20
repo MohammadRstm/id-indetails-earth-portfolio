@@ -1,3 +1,5 @@
+import { ApiError } from '../api/errors';
+
 export interface ContactMessage {
   name: string;
   email: string;
@@ -56,4 +58,29 @@ export function cleanContactMessage(values: ContactMessage): ContactMessage {
     message: values.message.trim(),
     website: values.website,
   };
+}
+
+/**
+ * What a failed send means for the visitor: fields the server rejected (shown
+ * beside each, like the form's own checks), too many messages from them
+ * (429), online sending switched off (503 website_contact_unavailable), or
+ * anything else (no connection, the mail server failing).
+ */
+export type ContactFailure = { kind: 'fields'; errors: ContactErrors } | { kind: 'busy' } | { kind: 'unavailable' } | { kind: 'failed' };
+
+const FIELD_NAMES: ContactField[] = ['name', 'email', 'phone', 'message'];
+
+export function contactFailure(error: unknown): ContactFailure {
+  if (!(error instanceof ApiError)) return { kind: 'failed' };
+  if (error.isValidation) {
+    const errors: ContactErrors = {};
+    for (const field of FIELD_NAMES) {
+      const first = error.fieldErrors[field]?.[0];
+      if (first) errors[field] = first;
+    }
+    if (Object.keys(errors).length > 0) return { kind: 'fields', errors };
+  }
+  if (error.status === 429) return { kind: 'busy' };
+  if (error.code === 'website_contact_unavailable') return { kind: 'unavailable' };
+  return { kind: 'failed' };
 }
