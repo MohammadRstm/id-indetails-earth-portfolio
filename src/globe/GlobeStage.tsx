@@ -1,9 +1,9 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import { offices, type Office } from '../data/offices';
-import type { Project } from '../data/project';
+import { projectTypeLabel, type Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
-import { orientationFor } from '../lib/geo';
+import { orientationFor, tagSide } from '../lib/geo';
 import { isWebGL2Available } from '../lib/webgl';
 import { GlobeController } from './GlobeController';
 import { GlobeLayout } from './GlobeLayout';
@@ -58,6 +58,7 @@ export function GlobeStage({
     return new GlobeController(start, { autoRotate: false, reducedMotion });
   });
   const [projector] = useState(() => new MarkerProjector());
+  const activeGroup = groups.find((group) => group.id === activeGroupId);
   const [layout] = useState(() => new GlobeLayout());
   const [contextLost, setContextLost] = useState(false);
   const [onScreen, setOnScreen] = useState(true);
@@ -192,6 +193,7 @@ export function GlobeStage({
               onSelect={onSelectGroup}
             />
           ))}
+        {webgl && activeGroup && <TypeTag key={activeGroup.id} group={activeGroup} projector={projector} />}
         {webgl && offices.map((office) => <OfficeLabel key={office.id} office={office} projector={projector} />)}
       </div>
 
@@ -244,6 +246,62 @@ function GlobeMarker({ group, active, projector, onSelect }: GlobeMarkerProps) {
       title={group.projects.map((project) => project.title).join(', ')}
       onClick={() => onSelect(group.id)}
     />
+  );
+}
+
+/** How far the tag sits above and beside its point, in px. */
+const TAG_RUN = 18;
+const TAG_RISE = 22;
+/** The pointer stops this short of the point, and its arrowhead is this long. */
+const TAG_GAP = 4;
+const TAG_HEAD = 5;
+
+/**
+ * The selected place's type of project ("Villa", or "Villa · Hotel"), above
+ * and beside its point, with a pointer to it. Only the selected place has
+ * one, so the globe stays clean.
+ */
+function TypeTag({ group, projector }: { group: LocationGroup; projector: MarkerProjector }) {
+  const side = tagSide(group, offices);
+  const { id, lat, lng } = group;
+  const attach = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element) return;
+      projector.register(`tag-${id}`, lat, lng, element);
+      return () => projector.unregister(`tag-${id}`);
+    },
+    [projector, id, lat, lng],
+  );
+
+  const label = [...new Set(group.projects.map((project) => project.type))].map((type) => projectTypeLabel[type]).join(' · ');
+  // The pointer runs from the tag's end (0, 0) down to the point (run, rise), stopping just short of it.
+  const run = TAG_RUN;
+  const rise = TAG_RISE;
+  const length = Math.hypot(run, rise);
+  const [ux, uy] = [run / length, rise / length];
+  const [tipX, tipY] = [run - ux * TAG_GAP, rise - uy * TAG_GAP];
+  const head = (turn: number) => {
+    const [cos, sin] = [Math.cos(turn), Math.sin(turn)];
+    return `${(tipX - TAG_HEAD * (ux * cos - uy * sin)).toFixed(1)},${(tipY - TAG_HEAD * (ux * sin + uy * cos)).toFixed(1)}`;
+  };
+
+  return (
+    <div ref={attach} className="globe-tag" data-side={side} aria-hidden="true">
+      {/* Drawn for the left side; the right side mirrors it (see globe.css). */}
+      <svg
+        className="globe-tag__pointer"
+        width={run}
+        height={rise}
+        viewBox={`0 0 ${run} ${rise}`}
+        style={{ left: side === 'left' ? -run : 0, top: -rise }}
+      >
+        <line x1={0} y1={0} x2={tipX.toFixed(1)} y2={tipY.toFixed(1)} />
+        <polyline points={`${head(0.45)} ${tipX.toFixed(1)},${tipY.toFixed(1)} ${head(-0.45)}`} />
+      </svg>
+      <span className="globe-tag__label" style={side === 'left' ? { right: run + 4, bottom: rise } : { left: run + 4, bottom: rise }}>
+        {label}
+      </span>
+    </div>
   );
 }
 

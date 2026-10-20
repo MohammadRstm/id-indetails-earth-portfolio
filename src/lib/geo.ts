@@ -63,8 +63,8 @@ export interface LocationGroup {
   projects: Project[];
 }
 
-/** Projects closer than this share one marker. */
-const GROUP_DISTANCE_DEG = 0.75;
+/** Projects closer than this, about 10 km (in effect the same town), share one marker. */
+const GROUP_DISTANCE_DEG = 0.1;
 
 /** Groups projects that sit at (almost) the same place into one marker. */
 export function groupByLocation(projects: Project[]): LocationGroup[] {
@@ -89,6 +89,41 @@ export function greatCircleAngle(a: { lat: number; lng: number }, b: { lat: numb
   const q = latLngToVector(b.lat, b.lng);
   const cross = Math.hypot(p.y * q.z - p.z * q.y, p.z * q.x - p.x * q.z, p.x * q.y - p.y * q.x);
   return Math.atan2(cross, p.x * q.x + p.y * q.y + p.z * q.z);
+}
+
+/** Places further apart than this (radians, about 7°) keep full-size markers: their ripples don't meet. */
+const FULL_SIZE_SPACING = 0.12;
+/** The smallest a marker gets, so a place in a tight cluster still shows. */
+export const MIN_MARKER_SCALE = 0.3;
+
+/**
+ * How large each place's marker is drawn, from 1 down to MIN_MARKER_SCALE:
+ * smaller the closer its nearest neighbour, so places close together (several
+ * projects in one small country) stay apart instead of running into one blot.
+ */
+export function markerScales(places: Pick<LocationGroup, 'id' | 'lat' | 'lng'>[]): Map<string, number> {
+  const scales = new Map<string, number>();
+  for (const place of places) {
+    let nearest = Infinity;
+    for (const other of places) if (other !== place) nearest = Math.min(nearest, greatCircleAngle(place, other));
+    scales.set(place.id, Math.min(1, Math.max(MIN_MARKER_SCALE, nearest / FULL_SIZE_SPACING)));
+  }
+  return scales;
+}
+
+/**
+ * An office label runs east of its red dot, and a tag up and to the west of its place: a place this far east of
+ * an office (degrees of longitude, with this much latitude either way) puts its tag on the east side instead.
+ */
+const OFFICE_LABEL_SPAN = { minEast: 2, maxEast: 40, lat: 15 };
+
+/** Which side of its place the type tag sits on: up and to the left, unless an office's label is there. */
+export function tagSide(place: { lat: number; lng: number }, offices: { lat: number; lng: number }[]): 'left' | 'right' {
+  const officeInTheWay = offices.some((office) => {
+    const east = wrapAngle((place.lng - office.lng) * DEG) / DEG;
+    return east > OFFICE_LABEL_SPAN.minEast && east < OFFICE_LABEL_SPAN.maxEast && Math.abs(place.lat - office.lat) < OFFICE_LABEL_SPAN.lat;
+  });
+  return officeInTheWay ? 'right' : 'left';
 }
 
 export interface RouteEdge {
