@@ -9,6 +9,7 @@ import {
 import { formatCoordinates } from '../lib/geo';
 import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
 import { LoadedImage } from './LoadedImage';
+import { ProjectGallery } from './ProjectGallery';
 import { ScrollLink } from './ScrollLink';
 
 interface ProjectHeadingProps {
@@ -97,9 +98,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
         </dl>
       </div>
 
-      {project.gallery.map((image) => (
-        <Photo key={image.src} image={image} className="project-page__photo" />
-      ))}
+      <ProjectGallery images={project.gallery} title={project.title} />
 
       <div className="project-page__credits">
         <p className="project-page__note">Illustrative project: the name, client and details are examples.</p>
