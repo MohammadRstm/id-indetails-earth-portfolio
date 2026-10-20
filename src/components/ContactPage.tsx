@@ -1,3 +1,4 @@
+import { track } from '../analytics/analytics';
 import { offices, type Office } from '../data/offices';
 import { contactInfo } from '../data/site';
 import { ContactForm } from './ContactForm';
@@ -25,7 +26,11 @@ export function ContactPage() {
           {contactInfo.email && (
             <div className="contact__item">
               <h2 className="contact__label">Email</h2>
-              <a className="contact__value" href={`mailto:${contactInfo.email}`}>
+              <a
+                className="contact__value"
+                href={`mailto:${contactInfo.email}`}
+                onClick={() => track('email_click', { link_location: 'contact_page' })}
+              >
                 {contactInfo.email}
               </a>
             </div>
@@ -36,7 +41,11 @@ export function ContactPage() {
               {offices.map((office) => (
                 <li key={office.id}>
                   <span className="contact__city">{office.city}</span>
-                  <a className="contact__value" href={telHref(office.phone)}>
+                  <a
+                    className="contact__value"
+                    href={telHref(office.phone)}
+                    onClick={() => track('phone_click', { link_location: 'contact_details', office_city: office.city })}
+                  >
                     {office.phone}
                   </a>
                 </li>
@@ -65,7 +74,11 @@ export function ContactPage() {
                   {office.city}, {office.country}
                 </h3>
                 <p className="office__address">{office.address}</p>
-                <a className="office__phone" href={telHref(office.phone)}>
+                <a
+                  className="office__phone"
+                  href={telHref(office.phone)}
+                  onClick={() => track('phone_click', { link_location: 'office', office_city: office.city })}
+                >
                   {office.phone}
                 </a>
                 <a className="office__directions" href={mapLinkUrl(office)} target="_blank" rel="noopener noreferrer">

@@ -74,7 +74,7 @@ jobs:
           [ "$(docker exec website id -u)" != "0" ] || fail "nginx runs as root"
 
           status() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
-          for page in / /projects /projects/alfama-lofts /studio /contact /anything-else; do
+          for page in / /projects /projects/alfama-lofts /studio /contact /privacy /anything-else; do
             [ "$(status "$page")" = "200" ] || fail "$page doesn't answer 200"
           done
           curl -fs http://127.0.0.1:8080/projects/alfama-lofts | grep -q '<div id="root">' || fail "a page address doesn't get the app"
