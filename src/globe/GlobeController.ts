@@ -8,6 +8,13 @@ const SPIN_RAMP_SECONDS = 2.5;
 const HOLD_AFTER_FOCUS_SECONDS = 10;
 const HOLD_AFTER_DRAG_SECONDS = 3.5;
 const FOCUS_SMOOTH_TIME = 0.55;
+/** A focus turn shorter than this gets a nudge, so a move between places close together still shows. */
+const NUDGE_DISTANCE = 3 * DEG;
+/**
+ * The push such a turn starts with, in radians per second, in the direction of travel: it carries the globe
+ * about a degree past the place before it settles back (less when zoomed in, where the surface is magnified).
+ */
+const NUDGE_SPEED = 0.3;
 const INERTIA_DECAY = 3.2;
 const MAX_DRAG_VELOCITY = 6;
 export const PITCH_LIMIT = 60 * DEG;
@@ -175,9 +182,19 @@ export class GlobeController {
       this.zoomVelocity = 0;
       this.zoomTarget = this.zoomValue;
     } else {
+      this.nudge(yaw - this.yaw, goal.pitch - this.pitch);
       this.target = { yaw, pitch: goal.pitch };
     }
     this.wake();
+  }
+
+  /** Pushes a short turn on a little, so it sways past the place and settles back instead of barely moving. */
+  private nudge(deltaYaw: number, deltaPitch: number): void {
+    const distance = Math.hypot(deltaYaw, deltaPitch);
+    if (distance < 1e-6 || distance >= NUDGE_DISTANCE) return;
+    const push = NUDGE_SPEED * (1 - distance / NUDGE_DISTANCE) * this.dragScale;
+    this.yawVelocity += (deltaYaw / distance) * push;
+    this.pitchVelocity += (deltaPitch / distance) * push;
   }
 
   beginDrag(now: number): void {

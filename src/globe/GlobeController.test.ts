@@ -114,6 +114,41 @@ describe('focus', () => {
     expect(controller.zoom).toBe(0);
   });
 
+  /** How far past the place the turn from `from` to `to` goes (radians, along the direction of travel). */
+  function furthestPast(from: [number, number], to: [number, number]) {
+    const controller = createController();
+    controller.focus(from[0], from[1], 0, { instant: true });
+    const start = { yaw: controller.yaw, pitch: controller.pitch };
+    controller.focus(to[0], to[1], 0);
+    const goal = orientationFor(to[0], to[1]);
+    const goalYaw = start.yaw + wrapAngle(goal.yaw - start.yaw);
+    const length = Math.hypot(goalYaw - start.yaw, goal.pitch - start.pitch);
+    const along = [(goalYaw - start.yaw) / length, (goal.pitch - start.pitch) / length];
+    let past = 0;
+    let now = 0;
+    while (controller.isTransitioning && now < 10) {
+      now += FRAME;
+      controller.update(FRAME, now);
+      past = Math.max(past, (controller.yaw - goalYaw) * along[0] + (controller.pitch - goal.pitch) * along[1]);
+    }
+    return { past, controller, goal, goalYaw };
+  }
+
+  it('sways a little past a nearby place, so the move shows, then settles on it', () => {
+    // Beirut to Byblos: about a quarter of a degree.
+    const { past, controller, goal, goalYaw } = furthestPast([33.8959, 35.4784], [34.1211, 35.6481]);
+    expect(past).toBeGreaterThan(0.5 * DEG);
+    expect(past).toBeLessThan(2 * DEG);
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.yaw).toBeCloseTo(goalYaw, 4);
+    expect(controller.pitch).toBeCloseTo(goal.pitch, 4);
+  });
+
+  it('does not sway on a long turn', () => {
+    // Lisbon to Beirut.
+    expect(furthestPast([38.7114, -9.13], [33.8959, 35.4784]).past).toBeLessThan(1e-3);
+  });
+
   it('keeps asking for frames while the transition is running', () => {
     const controller = createController();
     controller.focus(35, 139, 0);

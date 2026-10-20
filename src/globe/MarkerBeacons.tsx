@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { AdditiveBlending, Color, DoubleSide, Quaternion, ShaderMaterial, Vector3 } from 'three';
 import type { LocationGroup } from '../lib/geo';
-import { latLngToVector } from '../lib/geo';
+import { latLngToVector, markerScales } from '../lib/geo';
 import { easeTowards, setUniform, type EffectUniforms } from './effectUniforms';
 import type { SceneUniforms } from './sceneUniforms';
 
@@ -28,6 +28,7 @@ const fragmentShader = /* glsl */ `
   uniform float uReveal;
   uniform float uHalf;
   uniform float uSeed;
+  uniform float uScale;
   varying vec2 vUv;
 
   float band(float r, float radius, float halfWidth, float aa) {
@@ -38,20 +39,21 @@ const fragmentShader = /* glsl */ `
     float r = length(vUv - 0.5) * 2.0 * uHalf;
     float aa = max(fwidth(r), 1e-5);
 
-    float dotRadius = mix(0.008, 0.012, uActive);
+    // A place with close neighbours is drawn smaller (uScale), so the places stay apart.
+    float dotRadius = mix(0.008, 0.012, uActive) * uScale;
     float core = 1.0 - smoothstep(dotRadius - aa, dotRadius + aa, r);
-    float halo = exp(-r / mix(0.008, 0.014, uActive)) * mix(0.3, 0.55, uActive);
+    float halo = exp(-r / (mix(0.008, 0.014, uActive) * uScale)) * mix(0.3, 0.55, uActive);
 
     // Two rings spread out from the dot in turn and fade as they go.
-    float reach = mix(0.045, 0.085, uActive);
+    float reach = mix(0.045, 0.085, uActive) * uScale;
     float ripples = 0.0;
     for (int i = 0; i < 2; i++) {
       float phase = fract(uTime / 2.8 + uSeed + float(i) * 0.5);
       float radius = mix(dotRadius, reach, 1.0 - pow(1.0 - phase, 2.0));
-      ripples += band(r, radius, 0.0008 + 0.001 * phase, aa) * pow(1.0 - phase, 1.6);
+      ripples += band(r, radius, (0.0008 + 0.001 * phase) * uScale, aa) * pow(1.0 - phase, 1.6);
     }
     // Without motion, a single still ring stands in for the ripple.
-    float still = band(r, reach * 0.55, 0.0007, aa) * 0.6;
+    float still = band(r, reach * 0.55, 0.0007 * uScale, aa) * 0.6;
     float ring = mix(still, ripples, uAnimate) * mix(0.55, 1.0, uActive);
 
     float edge = 1.0 - smoothstep(0.75, 1.0, r / uHalf);
@@ -78,7 +80,8 @@ interface MarkerBeaconsProps {
 /**
  * A small blue dot with a ripple for each place, drawn on the surface in the
  * globe's own space so it turns with the Earth and is hidden by the planet.
- * The selected place is a little larger and brighter.
+ * The selected place is a little larger and brighter; a place with close
+ * neighbours is smaller (markerScales).
  */
 export function MarkerBeacons({ groups, activeGroupId, uniforms, effects }: MarkerBeaconsProps) {
   const invalidate = useThree((state) => state.invalidate);
@@ -87,6 +90,7 @@ export function MarkerBeacons({ groups, activeGroupId, uniforms, effects }: Mark
 
   const markers = useMemo<Marker[]>(() => {
     const up = new Vector3(0, 0, 1);
+    const scales = markerScales(groups);
     return groups.map((group, index) => {
       const { x, y, z } = latLngToVector(group.lat, group.lng);
       const normal = new Vector3(x, y, z);
@@ -107,6 +111,7 @@ export function MarkerBeacons({ groups, activeGroupId, uniforms, effects }: Mark
             uHalf: { value: DISC_HALF_SIZE },
             // Spreads the ripples so the places do not pulse in step.
             uSeed: { value: (index * 0.37) % 1 },
+            uScale: { value: scales.get(group.id) ?? 1 },
             uTime: effects.uTime,
             uAnimate: effects.uAnimate,
             uReveal: uniforms.uReveal,

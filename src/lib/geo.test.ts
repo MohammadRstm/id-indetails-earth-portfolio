@@ -7,7 +7,9 @@ import {
   greatCircleAngle,
   groupByLocation,
   latLngToVector,
+  markerScales,
   MAX_FOCUS_PITCH,
+  MIN_MARKER_SCALE,
   minimumSpanningTree,
   orientationFor,
   wrapAngle,
@@ -160,25 +162,55 @@ describe('groupByLocation', () => {
   });
 
   it('names a group after its first project', () => {
-    const [group] = groupByLocation([project('a', 10, 20), project('b', 10.2, 20.2)]);
+    const [group] = groupByLocation([project('a', 10, 20), project('b', 10.05, 20.05)]);
     expect(group.id).toBe('loc-a');
     expect(group.city).toBe('a');
     expect(group.projects.map((p) => p.slug)).toEqual(['a', 'b']);
   });
 
   it('separates projects that are further apart than the grouping distance', () => {
+    // Neighbouring towns, like Beirut and Byblos, keep their own markers.
+    expect(groupByLocation([project('beirut', 33.8959, 35.4784), project('byblos', 34.1211, 35.6481)])).toHaveLength(2);
     expect(groupByLocation([project('a', 10, 20), project('b', 10.9, 20)])).toHaveLength(2);
     expect(groupByLocation([project('a', 10, 20), project('b', 10, 21)])).toHaveLength(2);
   });
 
   it('groups projects either side of the antimeridian', () => {
-    const groups = groupByLocation([project('a', -17.7, 179.9), project('b', -17.7, -179.9)]);
+    const groups = groupByLocation([project('a', -17.7, 179.97), project('b', -17.7, -179.97)]);
     expect(groups).toHaveLength(1);
     expect(groups[0].projects).toHaveLength(2);
   });
 
   it('returns no groups for no projects', () => {
     expect(groupByLocation([])).toEqual([]);
+  });
+});
+
+describe('markerScales', () => {
+  const place = (id: string, lat: number, lng: number) => ({ id, lat, lng });
+
+  it('keeps full-size markers for places far from each other, or alone', () => {
+    expect(markerScales([place('lisbon', 38.7, -9.1), place('dubai', 25.1, 55.1)])).toEqual(
+      new Map([
+        ['lisbon', 1],
+        ['dubai', 1],
+      ]),
+    );
+    expect(markerScales([place('alone', 0, 0)]).get('alone')).toBe(1);
+  });
+
+  it('shrinks markers with a close neighbour, down to the smallest size', () => {
+    const scales = markerScales([place('beirut', 33.8959, 35.4784), place('byblos', 34.1211, 35.6481), place('dubai', 25.1, 55.1)]);
+    expect(scales.get('beirut')).toBe(MIN_MARKER_SCALE);
+    expect(scales.get('byblos')).toBe(MIN_MARKER_SCALE);
+    expect(scales.get('dubai')).toBe(1);
+  });
+
+  it('scales in between with the distance to the nearest place', () => {
+    // 0.06 radians apart: half the spacing at which markers are full size.
+    const scales = markerScales([place('a', 0, 0), place('b', 0, 0.06 / DEG)]);
+    expect(scales.get('a')).toBeCloseTo(0.5);
+    expect(scales.get('b')).toBeCloseTo(0.5);
   });
 });
 

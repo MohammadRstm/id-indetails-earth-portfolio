@@ -23,17 +23,17 @@ describe('filterProjects', () => {
   it('filters by type, status, year and country', () => {
     expect(only({ type: 'hotel' }).every((project) => project.type === 'hotel')).toBe(true);
     expect(only({ status: 'in-progress' }).every((project) => project.status === 'in-progress')).toBe(true);
-    expect(slugs(only({ year: 2022 })).sort()).toEqual(['atlas-riad-hotel', 'clifton-bay-house']);
-    expect(slugs(only({ country: 'Greece' }))).toEqual(['aegean-cliff-villa']);
+    expect(slugs(only({ year: 2022 })).sort()).toEqual(['byblos-harbour-hotel', 'clifton-bay-house']);
+    expect(slugs(only({ country: 'Lebanon' })).sort()).toEqual(['batroun-cliff-villa', 'byblos-harbour-hotel', 'corniche-residences']);
   });
 
   it('combines filters', () => {
-    expect(slugs(only({ type: 'hotel', status: 'completed' })).sort()).toEqual(['atlas-riad-hotel', 'marina-crown-hotel']);
+    expect(slugs(only({ type: 'hotel', status: 'completed' })).sort()).toEqual(['byblos-harbour-hotel', 'marina-crown-hotel']);
   });
 
   it('searches title, client, city and country, ignoring case and accents', () => {
-    expect(slugs(only({ search: 'riad' }))).toEqual(['atlas-riad-hotel']);
-    expect(slugs(only({ search: 'MAISON atlas' }))).toEqual(['atlas-riad-hotel']);
+    expect(slugs(only({ search: 'harbour hotel' }))).toEqual(['byblos-harbour-hotel']);
+    expect(slugs(only({ search: 'JBEIL heritage' }))).toEqual(['byblos-harbour-hotel']);
     expect(slugs(only({ search: 'lisbon' }))).toEqual(['alfama-lofts']);
     expect(slugs(only({ search: 'mexico' }))).toEqual(['tulum-beach-hotel']);
     expect(only({ search: 'nothing like this' })).toEqual([]);
@@ -71,7 +71,7 @@ describe('filterOptions', () => {
     const options = filterOptions(demoProjects);
     expect(new Set(options.types)).toEqual(new Set(demoProjects.map((project) => project.type)));
     expect(options.years[0]).toBe(Math.max(...demoProjects.map((project) => project.year)));
-    expect(options.countries).toContain('Greece');
+    expect(options.countries).toContain('Lebanon');
     expect(new Set(options.countries).size).toBe(options.countries.length);
   });
 });
