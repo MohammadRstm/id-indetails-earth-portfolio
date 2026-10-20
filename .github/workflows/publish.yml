@@ -136,10 +136,13 @@ jobs:
           # the registry token lives only as long as this job; it is passed on stdin and removed afterwards
           ssh target "docker login ghcr.io -u '${{ github.actor }}' --password-stdin" <<< "$REGISTRY_TOKEN"
           status=0
-          # .env may not end with a newline: add one first, or the new tag would join its last line
+          # .env may not end with a newline: add one first, or the new tag would join its last line.
+          # The compose file needs every service's image tag, even to touch one: the API's and the client's
+          # come from deployed.env, which the API's deploy writes.
           ssh target "cd '$DEPLOY_PATH' && sed -i '/^WEBSITE_TAG=/d' .env \
             && { [ -z \"\$(tail -c1 .env)\" ] || echo >> .env; } \
             && echo 'WEBSITE_TAG=$WEBSITE_TAG' >> .env \
+            && set -a && . ./deployed.env && set +a \
             && docker compose -f docker-compose.prod.yml pull website \
             && docker compose -f docker-compose.prod.yml up -d --no-deps website" || status=$?
           ssh target "docker logout ghcr.io" || true

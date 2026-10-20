@@ -155,7 +155,7 @@ The actions are pinned to commits, as in the backend.
 **Publishing and deploying** (`.github/workflows/publish.yml`) is started by hand (Actions → Publish → Run workflow):
 
 - It runs the checks, then pushes `ghcr.io/mohammadrstm/id-indetails-website:sha-<7>`.
-- With **deploy** ticked, and after a reviewer approves the `production` environment, it logs the server in to GHCR, sets `WEBSITE_TAG` in the server's `.env` and restarts only the `website` service.
+- With **deploy** ticked, and after a reviewer approves the `production` environment, it logs the server in to GHCR, sets `WEBSITE_TAG` in the server's `.env` and restarts only the `website` service. It reads the API's and the client's image tags from the server's `deployed.env`, which the API's deploy writes, because the compose file needs every tag; so the API must have been deployed at least once.
 - Giving **tag** deploys an image published earlier without building, for a rollback.
 
 Deploying needs the server side first. Hosting is not decided yet, so none of this is in place:
