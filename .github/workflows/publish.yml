@@ -136,7 +136,10 @@ jobs:
           # the registry token lives only as long as this job; it is passed on stdin and removed afterwards
           ssh target "docker login ghcr.io -u '${{ github.actor }}' --password-stdin" <<< "$REGISTRY_TOKEN"
           status=0
-          ssh target "cd '$DEPLOY_PATH' && sed -i '/^WEBSITE_TAG=/d' .env && echo 'WEBSITE_TAG=$WEBSITE_TAG' >> .env \
+          # .env may not end with a newline: add one first, or the new tag would join its last line
+          ssh target "cd '$DEPLOY_PATH' && sed -i '/^WEBSITE_TAG=/d' .env \
+            && { [ -z \"\$(tail -c1 .env)\" ] || echo >> .env; } \
+            && echo 'WEBSITE_TAG=$WEBSITE_TAG' >> .env \
             && docker compose -f docker-compose.prod.yml pull website \
             && docker compose -f docker-compose.prod.yml up -d --no-deps website" || status=$?
           ssh target "docker logout ghcr.io" || true
