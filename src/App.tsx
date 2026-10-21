@@ -116,20 +116,18 @@ export default function App() {
 }
 
 /**
- * Each view starts at the top, except a project, which starts just past the
- * header so the header scrolls out of sight and the whole photograph shows;
- * the home page's grid when asked for (an old projects link, or the link on
- * the "Project not found" page); and a page
- * reached with Back, which returns to where it was left (such as further
- * down the grid). From far down a long page a smooth scroll would only sweep
- * past empty space, so it jumps instead.
+ * Each view starts at the top, and a project always does, so its photograph
+ * and globe show right under the header; the exceptions are the home page's
+ * grid when asked for (an old projects link, or the link on the "Project not
+ * found" page) and a page reached with Back, which returns to where it was
+ * left (such as further down the grid). From far down a long page a smooth
+ * scroll would only sweep past empty space, so it jumps instead.
  */
 function useScrollForRoute(path: string, isProject: boolean, toGrid: boolean, reducedMotion: boolean) {
   useEffect(() => {
-    const header = document.querySelector<HTMLElement>('.site-header');
     const grid = toGrid ? document.getElementById(GRID_ID) : null;
     const top = isProject
-      ? (header?.offsetHeight ?? 0)
+      ? 0
       : grid
         ? grid.getBoundingClientRect().top + window.scrollY
         : (savedScrollY(window.history.state) ?? 0);

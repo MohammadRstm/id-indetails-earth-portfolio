@@ -34,8 +34,9 @@ interface ExplorerProps {
  * The landing page and the project pages, without ever leaving the page: the
  * overview shows the globe beside a drifting strip of projects, with every
  * project in a paged grid below; opening one (from the strip, the globe or
- * the grid) slides the strip away, turns the globe to the place and moves in
- * until only its horizon remains above the project's page.
+ * the grid) slides the strip away, turns the globe to the place and moves in,
+ * in the left half of the page's top with the project's photo in the right
+ * half and the project's page right below them.
  */
 export function Explorer({ projects, offices, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
   const reducedMotion = usePrefersReducedMotion();
