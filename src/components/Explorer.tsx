@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Office } from '../data/offices';
 import { placeName, type Project } from '../data/project';
 import { GlobeStage } from '../globe/GlobeStage';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
@@ -18,6 +19,8 @@ const isTypingTarget = (target: EventTarget | null) =>
 interface ExplorerProps {
   /** Every project: all of them are on the globe; the strip shows those marked for it. */
   projects: Project[];
+  /** The studios: red points on the globe. */
+  offices: Office[];
   /** The slug of the project whose page is open, from the address bar; null on the globe overview. */
   openSlug: string | null;
   /** False while another page is showing: the explorer stays mounted but hidden and idle. */
@@ -34,7 +37,7 @@ interface ExplorerProps {
  * the grid) slides the strip away, turns the globe to the place and moves in
  * until only its horizon remains above the project's page.
  */
-export function Explorer({ projects, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
+export function Explorer({ projects, offices, openSlug, active, onOpenProject, onCloseProject, onContact }: ExplorerProps) {
   const reducedMotion = usePrefersReducedMotion();
   const narrow = useMediaQuery('(max-width: 959px)');
   const groups = useMemo(() => groupByLocation(projects), [projects]);
@@ -124,6 +127,7 @@ export function Explorer({ projects, openSlug, active, onOpenProject, onClosePro
       <div className="explorer__stage">
         <GlobeStage
           groups={groups}
+          offices={offices}
           activeGroupId={group.id}
           activeProject={project}
           closeUp={projectOpen}

@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { demoProjects } from '../data/demoProjects';
-import { offices } from '../data/offices';
+import { testOffices, testProjects } from '../test/projects';
 import { decodeCountries, findCountry, isArtificialEdge, polygonContains, segmentPositions, unwrapRing, type Ring } from './countries';
 
 const atlas = JSON.parse(readFileSync(fileURLToPath(new URL('../../node_modules/world-atlas/countries-50m.json', import.meta.url)), 'utf8'));
@@ -24,18 +23,18 @@ describe('decodeCountries', () => {
 });
 
 describe('findCountry', () => {
-  it('puts every demo project in the country it names', () => {
+  it('puts every test project in the country it names', () => {
     const expected: Record<string, string> = {
       'United States': 'United States of America',
     };
-    for (const { slug, location } of demoProjects) {
+    for (const { slug, location } of testProjects) {
       const country = findCountry(data.countries, location.lng, location.lat);
       expect(country?.name, slug).toBe(expected[location.country] ?? location.country);
     }
   });
 
   it('puts every office in the country it names', () => {
-    for (const office of offices) {
+    for (const office of testOffices) {
       expect(findCountry(data.countries, office.lng, office.lat)?.name, office.city).toBe(office.country);
     }
   });

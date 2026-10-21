@@ -1,16 +1,18 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
-
-// In development the API runs on https://localhost:7187 (its "https" launch profile). Proxying only the public
-// website API keeps the browser on one origin, as nginx does in production.
-const api = process.env.HOURLINE_API ?? 'https://localhost:7187'
+import { defineConfig, loadEnv } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      '/api/public/website': { target: api, changeOrigin: true, secure: false },
-    },
-  },
+export default defineConfig(({ mode }) => {
+  // In development (and `vite preview`) the site reads the public website API through this proxy, so the
+  // browser stays on one origin, as nginx does in production. By default it reads the live site's API;
+  // DEV_API_TARGET in .env points it elsewhere, such as a local API (https://localhost:7187, its "https"
+  // launch profile, whose development certificate isn't checked).
+  const target = loadEnv(mode, process.cwd(), '').DEV_API_TARGET || 'https://id-indetails.com'
+  const local = /^https?:\/\/localhost\b/.test(target)
+  const proxy = { '/api/public/website': { target, changeOrigin: true, secure: !local } }
+  return {
+    plugins: [react()],
+    server: { proxy },
+    preview: { proxy },
+  }
 })

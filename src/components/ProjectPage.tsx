@@ -101,10 +101,6 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
 
       <ProjectGallery images={project.gallery} title={project.title} />
 
-      <div className="project-page__credits">
-        <p className="project-page__note">Illustrative project: the name, client and details are examples.</p>
-      </div>
-
       <aside className="enquiry" aria-labelledby="enquiry-title">
         <h3 id="enquiry-title">Planning a {projectTypeLabel[project.type].toLowerCase()} of your own?</h3>
         <button

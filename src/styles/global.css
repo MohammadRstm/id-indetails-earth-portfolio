@@ -950,16 +950,6 @@ html:has(.viewer[open]) {
   color: var(--muted);
 }
 
-.project-page__credits {
-  padding-top: 8px;
-}
-
-.project-page__note {
-  margin-top: 28px;
-  font-size: 12.5px;
-  color: var(--muted);
-}
-
 .enquiry {
   display: flex;
   flex-wrap: wrap;

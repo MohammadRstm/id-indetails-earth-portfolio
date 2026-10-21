@@ -17,12 +17,8 @@ import {
 
 /**
  * The public website API (`/api/public/website`, built in the ID-Indetails
- * backend). Every call is anonymous and read-only except the contact form.
- *
- * Only the contact form is connected (`data/contactSource.ts`): the site still
- * reads its other data from `src/data`. Switching over means calling these
- * from `data/projectSource.ts` and the pages that read `data/site.ts` and
- * `data/offices.ts`.
+ * backend), where everything the site shows comes from. Every call is
+ * anonymous and read-only except the contact form.
  */
 
 async function request<T>(path: string, parse: (body: unknown) => T, init: RequestInit = {}): Promise<T> {

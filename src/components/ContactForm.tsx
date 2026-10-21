@@ -1,7 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { track } from '../analytics/analytics';
 import { sendContactMessage } from '../data/contactSource';
-import { contactInfo } from '../data/site';
 import {
   cleanContactMessage,
   contactFailure,
@@ -15,18 +14,22 @@ import {
 
 type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'failed'; reason: 'busy' | 'unavailable' | 'failed' };
 
-const FAILED: Record<'busy' | 'unavailable' | 'failed', { lead: string; withoutEmail: string }> = {
+/** What to say when a message can't go: with the email to write to, with the studios to call, or on its own. */
+const FAILED: Record<'busy' | 'unavailable' | 'failed', { lead: string; withoutEmail: string; alone: string }> = {
   busy: {
     lead: 'You have sent several messages in the last hour. Please try again later, or email us at',
     withoutEmail: 'You have sent several messages in the last hour. Please try again later, or call one of our studios below.',
+    alone: 'You have sent several messages in the last hour. Please try again later.',
   },
   unavailable: {
     lead: 'Online sending is not available right now. Please email us at',
     withoutEmail: 'Online sending is not available right now. Please call one of our studios below.',
+    alone: 'Online sending is not available yet. Please try again later.',
   },
   failed: {
     lead: 'Your message could not be sent. Please try again, or email us at',
     withoutEmail: 'Your message could not be sent. Please try again later, or call one of our studios below.',
+    alone: 'Your message could not be sent. Please try again later.',
   },
 };
 
@@ -36,8 +39,15 @@ const FIELDS: { name: ContactField; label: string; type: string; autoComplete: s
   { name: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', optional: true },
 ];
 
+interface ContactFormProps {
+  /** The company's contact email from the API, offered when a message can't be sent; null until it is set. */
+  email: string | null;
+  /** Whether the page lists studio phone numbers to call instead. */
+  hasPhones: boolean;
+}
+
 /** The enquiry form: checks its fields before sending and reports the outcome in a live region. */
-export function ContactForm() {
+export function ContactForm({ email, hasPhones }: ContactFormProps) {
   const [values, setValues] = useState<ContactMessage>(emptyContactMessage);
   const [errors, setErrors] = useState<ContactErrors>({});
   const [send, setSend] = useState<SendState>({ status: 'idle' });
@@ -158,16 +168,18 @@ export function ContactForm() {
         <p className="contact-form__status" role="status" data-tone={send.status === 'failed' ? 'error' : undefined}>
           {send.status === 'sent' && 'Thank you. Your message has been sent and we will reply soon.'}
           {send.status === 'failed' &&
-            (contactInfo.email ? (
+            (email ? (
               <>
                 {FAILED[send.reason].lead}{' '}
-                <a href={`mailto:${contactInfo.email}`} onClick={() => track('email_click', { link_location: 'contact_form' })}>
-                  {contactInfo.email}
+                <a href={`mailto:${email}`} onClick={() => track('email_click', { link_location: 'contact_form' })}>
+                  {email}
                 </a>
                 .
               </>
-            ) : (
+            ) : hasPhones ? (
               FAILED[send.reason].withoutEmail
+            ) : (
+              FAILED[send.reason].alone
             ))}
         </p>
       </div>
