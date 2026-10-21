@@ -73,7 +73,10 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
       <Photo image={project.hero} className="project-page__hero" />
 
       <div className="project-page__intro">
-        <p className="project-page__lead">{project.description}</p>
+        <div className="project-page__about">
+          <h3>Description</h3>
+          <p className="project-page__lead">{project.description}</p>
+        </div>
         <dl className="facts">
           <div>
             <dt>Status</dt>
