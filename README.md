@@ -207,6 +207,15 @@ The logo is the split "0" from the studio's PNG mark, redrawn as vector shapes w
 
 `npm test` runs Vitest over the pure logic: `lib/geo.ts` (coordinate maths, focus orientation, grouping, marker sizes, which side the type tag goes), `lib/countries.ts` (decoding the real outlines, finding each project's and office's country, rings across the antimeridian, holes, segment building), `globe/GlobeController.ts` (damping, focus, shortest yaw path, drag inertia, the close-up zoom, reduced motion), `hooks/useSiteRoute.ts` (reading and writing every kind of address, and where a page was left), `lib/projectFilters.ts` (the grid's search, filters, sorting and their address form), `lib/conveyor.ts` (which projects the strip shows), `lib/gallery.ts` (stepping through a project's photos, and setting them out in columns), `lib/pagination.ts` (the grid's pages and their address form), `api/` (reading the API's replies and errors against a stubbed `fetch`) `lib/contactForm.ts` (the form's checks), `analytics/` (nothing loaded or sent before Accept or without an ID, one page view per page, cleaned addresses, events, a change of mind removing the cookies, Global Privacy Control, and the kept answer) and `data/contactSource.ts` (that it posts to the API and passes its errors on). The tests that need projects and offices use made-up ones in `src/test/projects.ts`. Test files live next to the code as `*.test.ts` and are type-checked by `tsconfig.test.json`.
 
+## Protecting the photos
+
+The site makes its photos awkward to save, as a deterrent:
+- right-clicking a photo offers no "Save image as" or "Copy image", and photos can't be dragged out of the page (`lib/protectPhotos.ts`, set up in `main.tsx`);
+- a long press on a phone offers no save menu (`-webkit-touch-callout: none` on `img`);
+- a printed page leaves the photos out.
+
+None of this stops a determined visitor. Whatever a browser shows has already reached their device (the network panel and the cache have it), and screenshots and phone cameras can't be blocked by any website. The real protection is on the server: serving the public site only reduced copies, never the originals, and watermarking those copies.
+
 ## Known limitations
 
 - The Google maps load when the Contact page's maps come into view, whatever the visitor answered to the cookie question, and Google may set its cookies; the privacy notice says so. Loading them only after consent would need a click-to-load placeholder.

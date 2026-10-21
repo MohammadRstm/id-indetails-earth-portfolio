@@ -85,6 +85,18 @@ img {
   display: block;
   max-width: 100%;
   height: auto;
+  /* With protectPhotos: no long-press "save" menu on phones, and no dragging the photo out of the page. */
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* A printed page leaves the photos out. */
+@media print {
+  img,
+  .dock {
+    visibility: hidden;
+  }
 }
 
 /* Photos that wait to be fully loaded (LoadedImage) fade in rather than appearing a band at a time. */
