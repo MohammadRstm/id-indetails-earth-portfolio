@@ -39,6 +39,7 @@ export function ProjectHeading({ project, onBack }: ProjectHeadingProps) {
           {project.year}
         </p>
       </div>
+      {/* Only on narrow screens, where the globe fills the first screen and the details start below it. */}
       <ScrollLink className="heading__scroll" to="project-page">
         <ArrowDownIcon />
         <span>Project details</span>
