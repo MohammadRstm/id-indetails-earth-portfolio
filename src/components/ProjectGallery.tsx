@@ -108,7 +108,7 @@ interface PhotoViewerProps {
  * small photos below jumps straight to any one. Escape, the close button or
  * a click beside the photo closes it.
  */
-function PhotoViewer({ images, start, title, onClose }: PhotoViewerProps) {
+export function PhotoViewer({ images, start, title, onClose }: PhotoViewerProps) {
   const [index, setIndex] = useState(start);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const thumbsRef = useRef<HTMLOListElement>(null);

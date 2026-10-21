@@ -46,6 +46,10 @@ export interface Project {
   thumbnail: string;
   hero: ProjectImage;
   gallery: ProjectImage[];
+  /** Optional: the text beside the concept pictures; null when there is none. */
+  conceptDescription: string | null;
+  /** Optional: up to CONCEPT_LIMIT concept pictures (not the gallery's), the first being the main one; empty when none. */
+  conceptImages: ProjectImage[];
   /** Whether the project is one of those in the drifting strip on the landing page (at most 20). */
   showInConveyor: boolean;
   /** Position in the strip; null when the project is not in it. */
@@ -54,6 +58,9 @@ export interface Project {
 
 /** The most projects the landing page's strip shows. */
 export const CONVEYOR_LIMIT = 20;
+
+/** The most concept pictures a project page shows. */
+export const CONCEPT_LIMIT = 5;
 
 export const projectTypeLabel: Record<ProjectType, string> = {
   villa: 'Villa',

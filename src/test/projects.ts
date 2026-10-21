@@ -34,6 +34,8 @@ function project(
     thumbnail: `/test/${slug}/thumb.jpg`,
     hero: { src: `/test/${slug}/hero.jpg`, alt: title },
     gallery: [{ src: `/test/${slug}/gallery-1.jpg`, alt: `${title}, inside` }],
+    conceptDescription: null,
+    conceptImages: [],
     showInConveyor: true,
     conveyorOrder: nextId,
   };

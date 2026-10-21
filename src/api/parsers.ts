@@ -1,12 +1,5 @@
 import type { Office } from '../data/offices';
-import {
-  projectStatusLabel,
-  projectTypeLabel,
-  type Project,
-  type ProjectImage,
-  type ProjectStatus,
-  type ProjectType,
-} from '../data/project';
+import { CONCEPT_LIMIT, projectStatusLabel, projectTypeLabel, type Project, type ProjectImage, type ProjectStatus, type ProjectType } from '../data/project';
 import type { ContactInfo, Service, SiteSettings, SocialLink } from '../data/site';
 import { resolveAssetUrl } from './config';
 
@@ -80,6 +73,10 @@ export function parseProject(value: unknown): Project {
   const location = object(source.location, `${what}.location`);
   const gallery = source.gallery ?? [];
   if (!Array.isArray(gallery)) throw new ParseError(`${what}.gallery is not a list`);
+  // Both concept fields are optional, and missing from an API that predates them.
+  const conceptImages = source.conceptImages ?? [];
+  if (!Array.isArray(conceptImages)) throw new ParseError(`${what}.conceptImages is not a list`);
+  const conceptDescription = source.conceptDescription == null ? '' : text(source, 'conceptDescription', what, { allowEmpty: true });
   const conveyorOrder = source.conveyorOrder ?? null;
   if (conveyorOrder !== null && (typeof conveyorOrder !== 'number' || !Number.isFinite(conveyorOrder))) {
     throw new ParseError(`${what}.conveyorOrder is not a number`);
@@ -104,6 +101,8 @@ export function parseProject(value: unknown): Project {
     thumbnail: resolveAssetUrl(text(source, 'thumbnail', what)),
     hero: image(source.hero, `${what}.hero`),
     gallery: gallery.map((item, index) => image(item, `${what}.gallery[${index}]`)),
+    conceptDescription: conceptDescription.trim() === '' ? null : conceptDescription,
+    conceptImages: conceptImages.slice(0, CONCEPT_LIMIT).map((item, index) => image(item, `${what}.conceptImages[${index}]`)),
     showInConveyor: source.showInConveyor === true,
     conveyorOrder: conveyorOrder as number | null,
   };

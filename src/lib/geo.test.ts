@@ -35,6 +35,8 @@ function project(slug: string, lat: number, lng: number): Project {
     thumbnail: image.src,
     hero: image,
     gallery: [],
+    conceptDescription: null,
+    conceptImages: [],
     showInConveyor: true,
     conveyorOrder: null,
   };
