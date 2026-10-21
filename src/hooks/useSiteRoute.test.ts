@@ -7,6 +7,7 @@ describe('site addresses', () => {
     expect(routeFromPath('/studio')).toEqual({ page: 'studio' });
     expect(routeFromPath('/studio/')).toEqual({ page: 'studio' });
     expect(routeFromPath('/contact')).toEqual({ page: 'contact' });
+    expect(routeFromPath('/privacy')).toEqual({ page: 'privacy' });
   });
 
   it('reads a project slug from its address', () => {
@@ -35,6 +36,7 @@ describe('site addresses', () => {
       { page: 'home' },
       { page: 'studio' },
       { page: 'contact' },
+      { page: 'privacy' },
       { page: 'project', slug: 'alfama-lofts' },
       { page: 'project', slug: 'a b' },
       { page: 'project', slug: 'ü' },

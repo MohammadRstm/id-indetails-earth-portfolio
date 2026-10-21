@@ -1,6 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { analyticsConfigured, chooseConsent, consentNeeded, pageView } from './analytics/analytics';
+import { ConsentBanner } from './components/ConsentBanner';
 import { ContactPage } from './components/ContactPage';
 import { Explorer } from './components/Explorer';
+import { PrivacyPage } from './components/PrivacyPage';
 import { ProjectNotFound } from './components/ProjectNotFound';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
@@ -18,6 +21,9 @@ export default function App() {
   const reducedMotion = usePrefersReducedMotion();
   const list = projects.status === 'ready' ? projects.projects : null;
   const { route, openProject, closeProject, goTo, showGrid } = useSiteRoute();
+  const path = pathFor(route);
+  const [askingConsent, setAskingConsent] = useState(consentNeeded);
+  const askConsent = analyticsConfigured ? () => setAskingConsent(true) : undefined;
   // While projects load, a project address is taken on trust so a shared link is not lost.
   const projectMissing = route.page === 'project' && list !== null && !list.some((project) => project.slug === route.slug);
   const openSlug = route.page === 'project' && !projectMissing ? route.slug : null;
@@ -25,7 +31,7 @@ export default function App() {
 
   // The grid is there to scroll to once the projects have loaded.
   const toGrid = route.page === 'home' && route.grid === true && list !== null;
-  useScrollForRoute(pathFor(route), openSlug !== null, toGrid, reducedMotion);
+  useScrollForRoute(path, openSlug !== null, toGrid, reducedMotion);
 
   useEffect(() => {
     const project = openSlug ? list?.find((item) => item.slug === openSlug) : undefined;
@@ -34,9 +40,12 @@ export default function App() {
       project: project ? `${project.title} · ${SITE_TITLE}` : projectMissing ? `Project not found · ${SITE_TITLE}` : SITE_TITLE,
       studio: `Studio · ${SITE_TITLE}`,
       contact: `Contact · ${SITE_TITLE}`,
+      privacy: `Privacy · ${SITE_TITLE}`,
     };
     document.title = titles[route.page];
-  }, [route.page, openSlug, list, projectMissing]);
+    // Counted once the title is the page's own: a project's waits for the projects to load.
+    if (route.page !== 'project' || list !== null) pageView(path, document.title);
+  }, [route.page, path, openSlug, list, projectMissing]);
 
   // The favicon chosen in the dashboard, once there is one; until then the site's own.
   const { faviconUrl } = content.settings;
@@ -82,8 +91,18 @@ export default function App() {
       {projectMissing && <ProjectNotFound onShowProjects={showGrid} />}
       {route.page === 'studio' && <StudioPage services={content.services} offices={content.offices} onContact={() => goTo('contact')} />}
       {route.page === 'contact' && <ContactPage offices={content.offices} contact={content.contact} />}
+      {route.page === 'privacy' && <PrivacyPage onCookieSettings={askConsent} />}
 
-      <SiteFooter socialLinks={content.socialLinks} onNavigate={goTo} />
+      <SiteFooter socialLinks={content.socialLinks} onNavigate={goTo} onCookieSettings={askConsent} />
+      {askingConsent && (
+        <ConsentBanner
+          onNavigate={goTo}
+          onAnswer={(choice) => {
+            chooseConsent(choice);
+            setAskingConsent(false);
+          }}
+        />
+      )}
     </>
   );
 }

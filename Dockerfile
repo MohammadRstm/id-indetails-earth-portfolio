@@ -20,6 +20,9 @@ COPY . .
 # Where the browser calls the API; empty keeps the same-origin default (/api/public/website, proxied by nginx).
 ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+# The Google Analytics measurement ID (G-…), given only by the Publish workflow: empty, nothing is tracked.
+ARG VITE_GA_MEASUREMENT_ID=
+ENV VITE_GA_MEASUREMENT_ID=${VITE_GA_MEASUREMENT_ID}
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime

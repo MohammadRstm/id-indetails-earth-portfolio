@@ -1,3 +1,4 @@
+import { track } from '../analytics/analytics';
 import type { Office } from '../data/offices';
 import type { ContactInfo } from '../data/site';
 import { ContactForm } from './ContactForm';
@@ -36,7 +37,11 @@ export function ContactPage({ offices, contact }: ContactPageProps) {
             {contact.email && (
               <div className="contact__item">
                 <h2 className="contact__label">Email</h2>
-                <a className="contact__value" href={`mailto:${contact.email}`}>
+                <a
+                  className="contact__value"
+                  href={`mailto:${contact.email}`}
+                  onClick={() => track('email_click', { link_location: 'contact_page' })}
+                >
                   {contact.email}
                 </a>
               </div>
@@ -48,7 +53,11 @@ export function ContactPage({ offices, contact }: ContactPageProps) {
                   {withPhone.map((office) => (
                     <li key={office.id}>
                       <span className="contact__city">{office.city}</span>
-                      <a className="contact__value" href={telHref(office.phone)}>
+                      <a
+                        className="contact__value"
+                        href={telHref(office.phone)}
+                        onClick={() => track('phone_click', { link_location: 'contact_details', office_city: office.city })}
+                      >
                         {office.phone}
                       </a>
                     </li>
@@ -81,7 +90,11 @@ export function ContactPage({ offices, contact }: ContactPageProps) {
                   </h3>
                   {office.address && <p className="office__address">{office.address}</p>}
                   {office.phone && (
-                    <a className="office__phone" href={telHref(office.phone)}>
+                    <a
+                      className="office__phone"
+                      href={telHref(office.phone)}
+                      onClick={() => track('phone_click', { link_location: 'office', office_city: office.city })}
+                    >
                       {office.phone}
                     </a>
                   )}

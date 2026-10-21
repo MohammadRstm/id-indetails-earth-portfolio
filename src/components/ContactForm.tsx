@@ -1,8 +1,9 @@
-import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
-import { ApiError } from '../api/errors';
-import { postContactMessage } from '../api/website';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { track } from '../analytics/analytics';
+import { sendContactMessage } from '../data/contactSource';
 import {
   cleanContactMessage,
+  contactFailure,
   emptyContactMessage,
   MESSAGE_MAX_LENGTH,
   validateContactMessage,
@@ -11,17 +12,26 @@ import {
   type ContactMessage,
 } from '../lib/contactForm';
 
-/** Why a message didn't go: no contact email set yet, the hourly limit, or anything else. */
-type FailReason = 'unavailable' | 'too-many' | 'other';
-type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'failed'; reason: FailReason };
+type SendState = { status: 'idle' } | { status: 'sending' } | { status: 'sent' } | { status: 'failed'; reason: 'busy' | 'unavailable' | 'failed' };
 
-const FIELD_NAMES: ContactField[] = ['name', 'email', 'phone', 'message'];
-
-function failReason(error: unknown): FailReason {
-  if (error instanceof ApiError && error.code === 'website_contact_unavailable') return 'unavailable';
-  if (error instanceof ApiError && error.status === 429) return 'too-many';
-  return 'other';
-}
+/** What to say when a message can't go: with the email to write to, with the studios to call, or on its own. */
+const FAILED: Record<'busy' | 'unavailable' | 'failed', { lead: string; withoutEmail: string; alone: string }> = {
+  busy: {
+    lead: 'You have sent several messages in the last hour. Please try again later, or email us at',
+    withoutEmail: 'You have sent several messages in the last hour. Please try again later, or call one of our studios below.',
+    alone: 'You have sent several messages in the last hour. Please try again later.',
+  },
+  unavailable: {
+    lead: 'Online sending is not available right now. Please email us at',
+    withoutEmail: 'Online sending is not available right now. Please call one of our studios below.',
+    alone: 'Online sending is not available yet. Please try again later.',
+  },
+  failed: {
+    lead: 'Your message could not be sent. Please try again, or email us at',
+    withoutEmail: 'Your message could not be sent. Please try again later, or call one of our studios below.',
+    alone: 'Your message could not be sent. Please try again later.',
+  },
+};
 
 const FIELDS: { name: ContactField; label: string; type: string; autoComplete: string; optional?: boolean }[] = [
   { name: 'name', label: 'Name', type: 'text', autoComplete: 'name' },
@@ -30,17 +40,13 @@ const FIELDS: { name: ContactField; label: string; type: string; autoComplete: s
 ];
 
 interface ContactFormProps {
-  /** The company's contact email, offered when a message can't be sent; null until it is set. */
+  /** The company's contact email from the API, offered when a message can't be sent; null until it is set. */
   email: string | null;
   /** Whether the page lists studio phone numbers to call instead. */
   hasPhones: boolean;
 }
 
-/**
- * The enquiry form: checks its fields, sends them to the website API, which
- * emails the company, and reports the outcome in a live region. The server's
- * own field checks show beside the fields like the form's.
- */
+/** The enquiry form: checks its fields before sending and reports the outcome in a live region. */
 export function ContactForm({ email, hasPhones }: ContactFormProps) {
   const [values, setValues] = useState<ContactMessage>(emptyContactMessage);
   const [errors, setErrors] = useState<ContactErrors>({});
@@ -54,52 +60,34 @@ export function ContactForm({ email, hasPhones }: ContactFormProps) {
     if (errors[field]) setErrors((current) => ({ ...current, [field]: validateContactMessage({ ...values, [field]: value })[field] }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const found = validateContactMessage(values);
+  const showErrors = (found: ContactErrors): boolean => {
     setErrors(found);
     const firstInvalid = (Object.keys(found) as ContactField[])[0];
-    if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
-      return;
-    }
+    if (firstInvalid) formRef.current?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
+    return Boolean(firstInvalid);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (showErrors(validateContactMessage(values))) return;
     setSend({ status: 'sending' });
+    const message = cleanContactMessage(values);
     try {
-      await postContactMessage(cleanContactMessage(values));
+      await sendContactMessage(message);
+      // a robot's message (the hidden field filled in) is answered the same, but isn't a lead
+      if (message.website === '') track('generate_lead', { lead_source: 'contact_form' });
       setSend({ status: 'sent' });
       setValues(emptyContactMessage);
     } catch (error: unknown) {
-      if (error instanceof ApiError && error.isValidation) {
-        const fromServer: ContactErrors = {};
-        for (const field of FIELD_NAMES) {
-          const message = error.fieldErrors[field]?.[0];
-          if (message) fromServer[field] = message;
-        }
-        setErrors(fromServer);
+      const failure = contactFailure(error);
+      if (failure.kind === 'fields') {
         setSend({ status: 'idle' });
-        const first = FIELD_NAMES.find((field) => fromServer[field]);
-        if (first) formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+        showErrors(failure.errors);
         return;
       }
-      const reason = failReason(error);
-      if (reason === 'other') console.error('Contact message failed to send', error);
-      setSend({ status: 'failed', reason });
+      if (failure.kind === 'failed') console.error('Contact message failed to send', error);
+      setSend({ status: 'failed', reason: failure.kind });
     }
-  };
-
-  // Another way to reach the studio, when the form can't send.
-  const instead: ReactNode = email ? (
-    <>
-      {' '}
-      You can also email us at <a href={`mailto:${email}`}>{email}</a>.
-    </>
-  ) : hasPhones ? (
-    ' You can also call one of our studios.'
-  ) : null;
-  const failure: Record<FailReason, string> = {
-    unavailable: 'Sending messages online isn’t switched on yet.',
-    'too-many': 'Several messages were sent from here in a short time. Please try again in an hour.',
-    other: 'Your message could not be sent. Please try again.',
   };
 
   const describedBy = (field: ContactField) => (errors[field] ? `contact-${field}-error` : undefined);
@@ -179,12 +167,20 @@ export function ContactForm({ email, hasPhones }: ContactFormProps) {
         </button>
         <p className="contact-form__status" role="status" data-tone={send.status === 'failed' ? 'error' : undefined}>
           {send.status === 'sent' && 'Thank you. Your message has been sent and we will reply soon.'}
-          {send.status === 'failed' && (
-            <>
-              {failure[send.reason]}
-              {instead}
-            </>
-          )}
+          {send.status === 'failed' &&
+            (email ? (
+              <>
+                {FAILED[send.reason].lead}{' '}
+                <a href={`mailto:${email}`} onClick={() => track('email_click', { link_location: 'contact_form' })}>
+                  {email}
+                </a>
+                .
+              </>
+            ) : hasPhones ? (
+              FAILED[send.reason].withoutEmail
+            ) : (
+              FAILED[send.reason].alone
+            ))}
         </p>
       </div>
     </form>

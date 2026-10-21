@@ -78,6 +78,9 @@ jobs:
           context: .
           target: runtime
           push: true
+          # The repository variable GA_MEASUREMENT_ID (Settings, Secrets and variables, Actions, Variables): public, not a secret.
+          build-args: |
+            VITE_GA_MEASUREMENT_ID=${{ vars.GA_MEASUREMENT_ID }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

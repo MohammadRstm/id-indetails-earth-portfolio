@@ -1762,6 +1762,157 @@ select.filters__input {
   color: var(--muted);
 }
 
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.site-footer__legal a,
+.site-footer__legal button {
+  color: var(--muted);
+  font: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.site-footer__legal a:hover,
+.site-footer__legal button:hover {
+  color: var(--ink);
+}
+
+/* Cookie question ------------------------------------------------------------- */
+
+.consent {
+  position: fixed;
+  z-index: 40;
+  right: var(--gutter);
+  bottom: 20px;
+  left: var(--gutter);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px 28px;
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 20px 24px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 16px;
+  background: var(--bg-raised);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.consent__title {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-stretch: 112%;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.consent__text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.consent__text a {
+  color: var(--ink);
+}
+
+.consent__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.button--outline {
+  border-color: var(--hairline-strong);
+  background: transparent;
+  color: var(--ink);
+}
+
+.button--outline:hover {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 640px) {
+  .consent {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .consent__actions .button {
+    flex: 1;
+  }
+}
+
+/* Privacy notice -------------------------------------------------------------- */
+
+.privacy {
+  display: grid;
+  gap: clamp(48px, 6vw, 80px);
+  max-width: 78ch;
+  margin-top: clamp(56px, 8vw, 110px);
+}
+
+.privacy__section p {
+  margin-top: 16px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.privacy__section a {
+  color: var(--ink);
+}
+
+.privacy__table-wrap {
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.privacy__table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.privacy__table th,
+.privacy__table td {
+  padding: 12px 16px 12px 0;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+
+.privacy__table th {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.privacy__table td {
+  color: var(--ink-soft);
+}
+
+.privacy__table code {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.privacy__settings {
+  margin-top: 24px;
+}
+
 /* Short desktop screens ------------------------------------------------------- */
 
 @media (min-width: 960px) and (max-height: 760px) {

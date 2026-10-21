@@ -1,3 +1,4 @@
+import { track } from '../analytics/analytics';
 import type { Office } from '../data/offices';
 import type { Service } from '../data/site';
 import { ArrowRightIcon } from './icons';
@@ -50,7 +51,14 @@ export function StudioPage({ services, offices, onContact }: StudioPageProps) {
 
       <aside className="enquiry page__enquiry" aria-labelledby="studio-enquiry-title">
         <h2 id="studio-enquiry-title">Have a project in mind?</h2>
-        <button type="button" className="text-action" onClick={onContact}>
+        <button
+          type="button"
+          className="text-action"
+          onClick={() => {
+            track('contact_cta_click', { cta_location: 'studio_page' });
+            onContact();
+          }}
+        >
           Contact us
           <ArrowRightIcon />
         </button>

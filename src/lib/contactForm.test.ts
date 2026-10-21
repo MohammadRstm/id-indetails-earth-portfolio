@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cleanContactMessage, emptyContactMessage, MESSAGE_MAX_LENGTH, validateContactMessage } from './contactForm';
+import { ApiError } from '../api/errors';
+import { cleanContactMessage, contactFailure, emptyContactMessage, MESSAGE_MAX_LENGTH, validateContactMessage } from './contactForm';
 
 const valid = { name: 'Rana Haddad', email: 'rana@example.com', phone: '', message: 'A villa near Batroun, starting next spring.', website: '' };
 
@@ -49,5 +50,30 @@ describe('cleanContactMessage', () => {
       message: 'Hello there',
       website: '',
     });
+  });
+});
+
+describe('contactFailure', () => {
+  it('puts the field errors from the server beside the fields, first message each', () => {
+    const error = new ApiError(400, 'validation_failed', 'Check the form.', { email: ['Enter one plain address.', 'Too long.'], phone: ['Too short.'] });
+    expect(contactFailure(error)).toEqual({ kind: 'fields', errors: { email: 'Enter one plain address.', phone: 'Too short.' } });
+  });
+
+  it('treats a 400 about no known field as a plain failure', () => {
+    expect(contactFailure(new ApiError(400, 'validation_failed', 'Bad.', { other: ['?'] }))).toEqual({ kind: 'failed' });
+  });
+
+  it('tells a visitor who sent too many messages to wait', () => {
+    expect(contactFailure(new ApiError(429, 'too_many_requests', 'Slow down.'))).toEqual({ kind: 'busy' });
+  });
+
+  it('says when online sending is switched off', () => {
+    expect(contactFailure(new ApiError(503, 'website_contact_unavailable', 'Off.'))).toEqual({ kind: 'unavailable' });
+  });
+
+  it('treats the mail server, no connection and anything unexpected alike', () => {
+    expect(contactFailure(new ApiError(503, 'email_delivery_failed', 'Mail down.'))).toEqual({ kind: 'failed' });
+    expect(contactFailure(new ApiError(0, 'network_error', 'No connection.'))).toEqual({ kind: 'failed' });
+    expect(contactFailure(new Error('boom'))).toEqual({ kind: 'failed' });
   });
 });

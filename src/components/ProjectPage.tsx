@@ -1,3 +1,4 @@
+import { track } from '../analytics/analytics';
 import {
   hasExactPosition,
   placeName,
@@ -102,7 +103,14 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
 
       <aside className="enquiry" aria-labelledby="enquiry-title">
         <h3 id="enquiry-title">Planning a {projectTypeLabel[project.type].toLowerCase()} of your own?</h3>
-        <button type="button" className="text-action" onClick={onContact}>
+        <button
+          type="button"
+          className="text-action"
+          onClick={() => {
+            track('contact_cta_click', { cta_location: 'project_page', project_slug: project.slug });
+            onContact();
+          }}
+        >
           Contact us
           <ArrowRightIcon />
         </button>
