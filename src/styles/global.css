@@ -912,6 +912,10 @@ html:has(.viewer[open]) {
   border-bottom: 1px solid var(--hairline);
 }
 
+.project-page__about h3 {
+  margin-bottom: 10px;
+}
+
 .project-page__lead {
   font-size: clamp(22px, 2.3vw, 34px);
   font-weight: 300;
@@ -921,9 +925,17 @@ html:has(.viewer[open]) {
 
 /* Right under the photograph and the globe, the description is as small as the facts, so both show on the first screen. */
 @media (min-width: 960px) {
+  /* Set apart from the photograph and the globe by a little space and a hairline. */
   .project-page__intro {
     gap: 24px clamp(40px, 6vw, 120px);
+    margin-top: clamp(24px, 3.5vh, 40px);
     padding: clamp(24px, 3vh, 36px) 0 clamp(32px, 4vh, 48px);
+    border-top: 1px solid var(--hairline);
+  }
+
+  /* Level with the facts' values, which sit 6px under their labels. */
+  .project-page__about h3 {
+    margin-bottom: 6px;
   }
 
   .project-page__lead {
