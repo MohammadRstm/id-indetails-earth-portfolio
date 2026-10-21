@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type SyntheticEvent } from 'react';
 import type { ProjectImage } from '../data/project';
-import { stepIndex } from '../lib/gallery';
+import { layoutMasonry, PLACEHOLDER_RATIO, stepIndex } from '../lib/gallery';
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from './icons';
 import { LoadedImage } from './LoadedImage';
 
@@ -12,7 +12,7 @@ interface ProjectGalleryProps {
   title: string;
 }
 
-/** A project's photos as a grid under its details; each opens the viewer at that photo. */
+/** A project's photos in columns under its details, each at its own shape; each opens the viewer at that photo. */
 export function ProjectGallery({ images, title }: ProjectGalleryProps) {
   const [open, setOpen] = useState<number | null>(null);
   if (images.length === 0) return null;
@@ -20,22 +20,78 @@ export function ProjectGallery({ images, title }: ProjectGalleryProps) {
   return (
     <section className="gallery" aria-labelledby="gallery-title">
       <h3 id="gallery-title">Photos</h3>
-      <ul className="gallery__grid">
-        {images.map((image, index) => (
-          <li key={image.src}>
-            <button
-              type="button"
-              className="gallery__item"
-              aria-label={`Open photo ${index + 1} of ${images.length}: ${image.alt}`}
-              onClick={() => setOpen(index)}
-            >
-              <LoadedImage src={image.src} alt="" loading="lazy" decoding="async" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <PhotoGrid images={images} onOpen={setOpen} />
       {open !== null && <PhotoViewer images={images} start={open} title={title} onClose={() => setOpen(null)} />}
     </section>
+  );
+}
+
+interface PhotoGridProps {
+  images: ProjectImage[];
+  onOpen: (index: number) => void;
+}
+
+/** What the layout needs from the page: how wide the grid is, and the gap its stylesheet sets between photos. */
+interface GridSize {
+  width: number;
+  gap: number;
+}
+
+/**
+ * The photos in columns of one width, each at its own shape and set under the
+ * shortest column so far. The list stays in photo order, so the Tab order and
+ * the viewer's numbering follow it; only each photo's position is calculated.
+ * A photo's shape is known once it has loaded; until then it holds a 4:3 place.
+ */
+function PhotoGrid({ images, onOpen }: PhotoGridProps) {
+  const gridRef = useRef<HTMLUListElement>(null);
+  const [size, setSize] = useState<GridSize | null>(null);
+  const [ratios, setRatios] = useState<Partial<Record<string, number>>>({});
+
+  // The columns follow the grid's width; the gap follows the screen's (see `.gallery__grid`), which can change on its own.
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      const width = grid.clientWidth;
+      const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+      setSize((current) => (current?.width === width && current.gap === gap ? current : { width, gap }));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  const handleLoad = (src: string, event: SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = event.currentTarget;
+    setRatios((current) => ({ ...current, [src]: naturalWidth / naturalHeight }));
+  };
+
+  const layout =
+    size && size.width > 0 ? layoutMasonry(images.map((image) => ratios[image.src] ?? PLACEHOLDER_RATIO), size.width, size.gap) : null;
+
+  // Until the grid has been measured the photos have no place, so they stay hidden and unloaded rather than all fetching at once.
+  return (
+    <ul ref={gridRef} className="gallery__grid" style={layout ? { height: layout.height } : { visibility: 'hidden' }}>
+      {images.map((image, index) => (
+        <li key={image.src} style={layout?.tiles[index]}>
+          <button
+            type="button"
+            className="gallery__item"
+            aria-label={`Open photo ${index + 1} of ${images.length}: ${image.alt}`}
+            onClick={() => onOpen(index)}
+          >
+            {layout && (
+              <LoadedImage src={image.src} alt="" loading="lazy" decoding="async" onLoad={(event) => handleLoad(image.src, event)} />
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

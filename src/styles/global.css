@@ -240,8 +240,6 @@ img[data-loaded='false'] {
 }
 
 .explorer__hero {
-  --dock-w: clamp(340px, 38vw, 640px);
-  --dock-gap: clamp(28px, 3.6vw, 72px);
   position: relative;
   z-index: 1;
   display: grid;
@@ -277,21 +275,28 @@ img[data-loaded='false'] {
   }
 }
 
-/* The project page: the globe takes everything left of the docked photograph. */
-.explorer[data-view='project'] .explorer__frame {
-  grid-column: 1 / -1;
-  margin-right: calc(var(--dock-w) + var(--dock-gap));
+/*
+ * The project page: the globe and the photograph each take half the width, with a small gap between them, and
+ * half the screen's height, so the description and the facts below show without scrolling. The header stays above.
+ */
+.explorer[data-view='project'] {
+  --media-h: clamp(320px, 50svh, 640px);
+  --media-gap: 10px;
 }
 
-/*
- * A project opens scrolled down by the header's height, so its hero (and the
- * globe behind it) is the screen's height plus the header: after the scroll
- * it fills the screen exactly, even on a window shorter than the overview's
- * minimum height.
- */
+.explorer[data-view='project'] .explorer__hero {
+  --media-w: calc((100% - 2 * var(--gutter) - var(--media-gap)) / 2);
+  padding-bottom: 0;
+}
+
+.explorer[data-view='project'] .explorer__frame {
+  grid-column: 1 / -1;
+  margin-right: calc(50% + var(--media-gap) / 2);
+}
+
 .explorer[data-view='project'] .explorer__hero,
 .explorer[data-view='project'] .explorer__stage {
-  height: calc(100svh + var(--header-h));
+  height: calc(var(--header-h) + var(--media-h));
 }
 
 .explorer__strip {
@@ -342,18 +347,13 @@ img[data-loaded='false'] {
   gap: 10px;
 }
 
-/* The project's photograph, held to the right of the globe's close-up. */
+/* The project's photograph: the right half of the project page's top, the same size as the globe's half. */
 .dock {
-  --dock-margin: clamp(20px, 3.5vh, 40px);
   position: absolute;
-  /*
-   * The page scrolls the header out of sight when a project opens, so starting just below it and taking the
-   * screen's height less two margins centres the photo on screen, however short the window.
-   */
-  top: calc(var(--header-h) + var(--dock-margin));
+  top: var(--header-h);
   right: var(--gutter);
-  height: calc(100svh - 2 * var(--dock-margin));
-  width: var(--dock-w);
+  height: var(--media-h);
+  width: var(--media-w);
   overflow: hidden;
   border-radius: 3px;
   background: var(--bg-raised) center / cover no-repeat;
@@ -597,11 +597,12 @@ img[data-loaded='false'] {
 
 .heading {
   position: absolute;
-  inset: 0 calc(var(--dock-w) + var(--dock-gap) + var(--gutter)) 0 0;
+  /* Exactly the globe's half: below the header, and ending where the gap before the photograph starts. */
+  inset: var(--header-h) calc(var(--gutter) + var(--media-w) + var(--media-gap)) 0 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto 1fr auto;
-  padding: calc(var(--header-h) + 4px) 0 clamp(28px, 6vh, 64px) var(--gutter);
+  padding: 16px 20px 18px var(--gutter);
   pointer-events: none;
   animation: rise-in 0.9s var(--ease-out) 0.6s both;
 }
@@ -642,7 +643,7 @@ img[data-loaded='false'] {
   grid-column: 1;
   grid-row: 2;
   align-self: start;
-  margin-top: clamp(24px, 5vh, 56px);
+  margin-top: clamp(12px, 2.4vh, 24px);
 }
 
 .heading__eyebrow {
@@ -650,8 +651,8 @@ img[data-loaded='false'] {
 }
 
 .heading__title {
-  margin-top: 14px;
-  font-size: clamp(48px, 6vw, 112px);
+  margin-top: 10px;
+  font-size: clamp(30px, 3.2vw, 60px);
   font-weight: 620;
   font-stretch: 66%;
   line-height: 0.86;
@@ -661,7 +662,7 @@ img[data-loaded='false'] {
 }
 
 .heading__coords {
-  margin-top: 18px;
+  margin-top: 10px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -739,7 +740,7 @@ img[data-loaded='false'] {
   display: none;
 }
 
-/* A project's photos: a grid under its details, each opening the viewer. */
+/* A project's photos: columns under its details, each photo at its own shape, each opening the viewer. */
 .gallery {
   padding-top: clamp(48px, 6vw, 88px);
 }
@@ -748,16 +749,20 @@ img[data-loaded='false'] {
   margin-bottom: 22px;
 }
 
+/* ProjectGallery sets each photo's place and the grid's height; it reads this gap to space the photos. */
 .gallery__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-  gap: clamp(10px, 1.2vw, 18px);
+  position: relative;
+  column-gap: clamp(10px, 1.2vw, 18px);
+}
+
+.gallery__grid > li {
+  position: absolute;
 }
 
 .gallery__item {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   padding: 0;
   border: 0;
   border-radius: 3px;
@@ -930,6 +935,20 @@ html:has(.viewer[open]) {
   text-wrap: pretty;
 }
 
+/* Right under the photograph and the globe, the description is as small as the facts, so both show on the first screen. */
+@media (min-width: 960px) {
+  .project-page__intro {
+    gap: 24px clamp(40px, 6vw, 120px);
+    padding: clamp(24px, 3vh, 36px) 0 clamp(32px, 4vh, 48px);
+  }
+
+  .project-page__lead {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+}
+
 .facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -944,6 +963,13 @@ html:has(.viewer[open]) {
 .facts dd {
   margin-top: 6px;
   font-size: 15px;
+}
+
+@media (min-width: 960px) {
+  .facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 24px;
+  }
 }
 
 .project-page h3 {
@@ -2025,7 +2051,15 @@ select.filters__input {
   .heading {
     inset: 0;
     grid-template-columns: minmax(0, 1fr);
-    padding-inline: 20px;
+    padding: calc(var(--header-h) + 4px) 20px clamp(28px, 6vh, 64px);
+  }
+
+  .heading__body {
+    margin-top: clamp(24px, 5vh, 56px);
+  }
+
+  .heading__coords {
+    margin-top: 18px;
   }
 
   .heading__scroll {
