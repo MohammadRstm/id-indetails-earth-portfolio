@@ -9,9 +9,11 @@ interface SiteFooterProps {
   onNavigate: (page: Page) => void;
   /** Asks the cookie question again; absent when the site uses no analytics. */
   onCookieSettings?: () => void;
+  /** Leaves out the Studio link while the site is under construction. */
+  underConstruction?: boolean;
 }
 
-export function SiteFooter({ socialLinks, onNavigate, onCookieSettings }: SiteFooterProps) {
+export function SiteFooter({ socialLinks, onNavigate, onCookieSettings, underConstruction = false }: SiteFooterProps) {
   return (
     <footer className="site-footer">
       <div className="site-footer__top">
@@ -34,11 +36,13 @@ export function SiteFooter({ socialLinks, onNavigate, onCookieSettings }: SiteFo
         )}
         <nav aria-label="Footer">
           <ul className="site-footer__nav">
-            <li>
-              <PageLink page="studio" onNavigate={onNavigate}>
-                Studio
-              </PageLink>
-            </li>
+            {!underConstruction && (
+              <li>
+                <PageLink page="studio" onNavigate={onNavigate}>
+                  Studio
+                </PageLink>
+              </li>
+            )}
             <li>
               <PageLink page="contact" onNavigate={onNavigate}>
                 Contact

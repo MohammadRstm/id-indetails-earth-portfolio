@@ -1084,6 +1084,27 @@ html:has(.viewer[open]) {
   margin-top: 40px;
 }
 
+/* Under construction: the one page shown while the switch in the dashboard is on. */
+.construction {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100svh - 120px);
+}
+
+/* A strip of construction tape, in the site's own colours. */
+.construction__sign {
+  width: min(220px, 50%);
+  height: 10px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 12px, transparent 12px 24px);
+  opacity: 0.85;
+}
+
+.construction__title {
+  margin-top: 28px;
+}
+
 /* Services */
 
 .services {

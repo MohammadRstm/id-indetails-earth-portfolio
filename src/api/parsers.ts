@@ -141,10 +141,13 @@ export function parseContactInfo(value: unknown): ContactInfo {
   return { email: source.email === null ? null : text(source, 'email', 'contact') };
 }
 
-/** The favicon is null until one is chosen. */
+/** The favicon is null until one is chosen. An API from before the under-construction switch sends no flag: off. */
 export function parseSiteSettings(value: unknown): SiteSettings {
   const source = object(value, 'settings');
-  return { faviconUrl: source.faviconUrl === null ? null : resolveAssetUrl(text(source, 'faviconUrl', 'settings')) };
+  return {
+    faviconUrl: source.faviconUrl === null ? null : resolveAssetUrl(text(source, 'faviconUrl', 'settings')),
+    underConstruction: source.underConstruction === undefined ? false : flag(source, 'underConstruction', 'settings'),
+  };
 }
 
 /** Parses each row, dropping (and logging) any that do not fit, so the rest still show. */
