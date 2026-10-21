@@ -27,15 +27,19 @@ const NARROW_FRAME_WIDTH = 600;
  * Wide cells (the project page, with the globe beside its photo at half the screen's height): the planet sits
  * further right and higher, so it fills more of the cell and the place stays clear of the faded bottom edge.
  */
-const CLOSE_CENTER_WIDE = { across: 0.04, down: 1.25 };
+const CLOSE_CENTER_WIDE = { across: 0.3, down: 1.25 };
 /** Cell width over height: at or below the first the tall placement is used, at or above the second the wide one, blended between. */
 const WIDE_FROM_ASPECT = 1.1;
 const WIDE_TO_ASPECT = 1.5;
 
-/** The placement for this cell's shape; it changes smoothly with the aspect, so the globe never jumps while the cell glides. */
+/**
+ * The placement for this cell's shape; it changes smoothly with the aspect, so the globe never jumps while the cell
+ * glides. The phone placement is for a narrow cell that is also tall: the project page's half on a smaller laptop is
+ * narrow too, but wide for its height.
+ */
 function closeCenter(layout: GlobeLayout) {
-  if (layout.frameWidth < NARROW_FRAME_WIDTH) return CLOSE_CENTER_NARROW;
   const aspect = layout.frameWidth / layout.frameHeight;
+  if (layout.frameWidth < NARROW_FRAME_WIDTH && aspect < WIDE_FROM_ASPECT) return CLOSE_CENTER_NARROW;
   const wide = Math.min(1, Math.max(0, (aspect - WIDE_FROM_ASPECT) / (WIDE_TO_ASPECT - WIDE_FROM_ASPECT)));
   return {
     across: CLOSE_CENTER.across + (CLOSE_CENTER_WIDE.across - CLOSE_CENTER.across) * wide,

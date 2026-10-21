@@ -661,31 +661,15 @@ img[data-loaded='false'] {
   overflow-wrap: anywhere;
 }
 
+.heading__scroll {
+  display: none;
+}
+
 .heading__coords {
   margin-top: 10px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-}
-
-.heading__scroll {
-  grid-column: 2;
-  grid-row: 3;
-  align-self: end;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 6px;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  text-decoration: none;
-  pointer-events: auto;
-}
-
-.heading__scroll:hover {
-  color: var(--ink);
 }
 
 @keyframes rise-in {
@@ -2062,8 +2046,31 @@ select.filters__input {
     margin-top: 18px;
   }
 
+  /* The globe fills the first screen here, so a clear way down to the details. */
   .heading__scroll {
-    display: none;
+    grid-row: 3;
+    justify-self: center;
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    background: rgba(10, 10, 11, 0.55);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    pointer-events: auto;
+    transition: background-color 0.2s ease;
+  }
+
+  .heading__scroll:hover {
+    background: rgba(255, 255, 255, 0.14);
   }
 
   .heading__title {
