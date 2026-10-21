@@ -81,12 +81,23 @@ describe('the other shapes', () => {
     ).toMatchObject({ city: 'Beirut', countryCode: 'LB' });
     expect(parseSocialLink({ id: 3, label: 'Instagram', url: 'https://www.instagram.com/x' }).label).toBe('Instagram');
     expect(parseContactInfo({ email: 'studio@example.com' })).toEqual({ email: 'studio@example.com' });
-    expect(parseSiteSettings({ faviconUrl: '/api/public/website/files/9' })).toEqual({ faviconUrl: '/api/public/website/files/9' });
+    expect(parseSiteSettings({ faviconUrl: '/api/public/website/files/9', underConstruction: true })).toEqual({
+      faviconUrl: '/api/public/website/files/9',
+      underConstruction: true,
+    });
   });
 
   it('accepts a contact email and a favicon that are not set yet', () => {
     expect(parseContactInfo({ email: null })).toEqual({ email: null });
-    expect(parseSiteSettings({ faviconUrl: null })).toEqual({ faviconUrl: null });
+    expect(parseSiteSettings({ faviconUrl: null, underConstruction: false })).toEqual({ faviconUrl: null, underConstruction: false });
+  });
+
+  it('reads settings from an API that has no under-construction switch yet as switched off', () => {
+    expect(parseSiteSettings({ faviconUrl: null })).toEqual({ faviconUrl: null, underConstruction: false });
+  });
+
+  it('refuses an under-construction flag that is not true or false', () => {
+    expect(() => parseSiteSettings({ faviconUrl: null, underConstruction: 'yes' })).toThrow(ParseError);
   });
 
   it('refuses links that are not web addresses', () => {

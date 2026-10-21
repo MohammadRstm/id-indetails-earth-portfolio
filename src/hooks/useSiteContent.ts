@@ -5,6 +5,8 @@ import type { ContactInfo, Service, SiteSettings, SocialLink } from '../data/sit
 
 /** Everything the site shows besides the projects. */
 export interface SiteContent {
+  /** False until every part has answered (or failed), so the site can wait for its settings before showing pages. */
+  loaded: boolean;
   offices: Office[];
   services: Service[];
   contact: ContactInfo;
@@ -13,11 +15,12 @@ export interface SiteContent {
 }
 
 export const emptySiteContent: SiteContent = {
+  loaded: false,
   offices: [],
   services: [],
   contact: { email: null },
   socialLinks: [],
-  settings: { faviconUrl: null },
+  settings: { faviconUrl: null, underConstruction: false },
 };
 
 /**
@@ -41,6 +44,7 @@ export function useSiteContent(): SiteContent {
       ([offices, services, contact, socialLinks, settings]) => {
         if (signal.aborted) return;
         setContent({
+          loaded: true,
           offices: settle(offices, emptySiteContent.offices, 'offices'),
           services: settle(services, emptySiteContent.services, 'services'),
           contact: settle(contact, emptySiteContent.contact, 'contact details'),

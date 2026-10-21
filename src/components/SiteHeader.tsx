@@ -11,28 +11,32 @@ interface SiteHeaderProps {
   /** The page in view; the globe and the project pages count as none of them. */
   current: Page;
   onNavigate: (page: Page) => void;
+  /** Just the logo, while the site is under construction and Studio would only lead back to that page. */
+  logoOnly?: boolean;
 }
 
-export function SiteHeader({ current, onNavigate }: SiteHeaderProps) {
+export function SiteHeader({ current, onNavigate, logoOnly = false }: SiteHeaderProps) {
   return (
     <header className="site-header">
       <PageLink page="home" className="wordmark" onNavigate={onNavigate} aria-label="ID-Indetails, all projects">
         <LogoMark className="wordmark__logo" />
         <span className="wordmark__name">ID-Indetails</span>
       </PageLink>
-      <nav className="site-nav" aria-label="Site">
-        {NAV.map(({ page, label }) => (
-          <PageLink
-            key={page}
-            page={page}
-            className="site-nav__link"
-            onNavigate={onNavigate}
-            aria-current={current === page ? 'page' : undefined}
-          >
-            {label}
-          </PageLink>
-        ))}
-      </nav>
+      {!logoOnly && (
+        <nav className="site-nav" aria-label="Site">
+          {NAV.map(({ page, label }) => (
+            <PageLink
+              key={page}
+              page={page}
+              className="site-nav__link"
+              onNavigate={onNavigate}
+              aria-current={current === page ? 'page' : undefined}
+            >
+              {label}
+            </PageLink>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

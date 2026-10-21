@@ -99,6 +99,7 @@ src/
 - Without WebGL 2 the globe is replaced by a notice and the strip and project pages keep working. If the country outlines fail to load, a graticule globe is shown with a notice.
 - **Offices.** Red points mark the studios the API lists, each labelled ID-Indetails. They do not move and cannot be clicked.
 - **Nothing entered yet.** Parts with no content are left out: the services list, the studio addresses, phones and maps, the email line, the footer's social links and the red points. The favicon stays the site's own until one is chosen.
+- **Under construction.** A switch in the app's Website area (`underConstruction` in `GET /settings`) puts the site under construction: every address except Contact and Privacy shows a single page (`components/UnderConstruction.tsx`) with a strip of construction tape, a short line and a Contact us link. The header keeps only the logo, the footer drops its Studio link, and the globe isn't loaded. Until the settings answer, those pages wait (an empty page), so the full site never flashes first. The API caches the settings for a minute, so a switch can take that long to show. An API that doesn't send the flag counts as switched off.
 
 ## Analytics
 
@@ -129,7 +130,7 @@ Everything comes from the public endpoints under `/api/public/website` (anonymou
 | `GET /services` | `getServices` | The Studio page's "What we do" |
 | `GET /contact` | `getContactInfo` | The email on the Contact page, offered when the form can't send |
 | `GET /social-links` | `getSocialLinks` | The footer |
-| `GET /settings` | `getSiteSettings` | The favicon (PNG, JPEG or WebP) |
+| `GET /settings` | `getSiteSettings` | The favicon (PNG, JPEG or WebP), and whether the site is under construction |
 | `POST /contact-messages` (202) | `postContactMessage` | The contact form |
 
 The contact form sends a hidden honeypot field, `website`; the API quietly drops messages where it is filled in.

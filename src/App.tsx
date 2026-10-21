@@ -8,6 +8,7 @@ import { ProjectNotFound } from './components/ProjectNotFound';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { StudioPage } from './components/StudioPage';
+import { UnderConstruction } from './components/UnderConstruction';
 import { usePrefersReducedMotion } from './hooks/useMediaQuery';
 import { useProjects } from './hooks/useProjects';
 import { useSiteContent } from './hooks/useSiteContent';
@@ -24,10 +25,15 @@ export default function App() {
   const path = pathFor(route);
   const [askingConsent, setAskingConsent] = useState(consentNeeded);
   const askConsent = analyticsConfigured ? () => setAskingConsent(true) : undefined;
+  // Under construction, only Contact and Privacy stay open; every other address shows the construction page.
+  // Until the settings answer, those other pages wait, so they never flash before the construction page.
+  const alwaysOpen = route.page === 'contact' || route.page === 'privacy';
+  const underConstruction = content.settings.underConstruction;
+  const closed = !alwaysOpen && (underConstruction || !content.loaded);
   // While projects load, a project address is taken on trust so a shared link is not lost.
   const projectMissing = route.page === 'project' && list !== null && !list.some((project) => project.slug === route.slug);
   const openSlug = route.page === 'project' && !projectMissing ? route.slug : null;
-  const onGlobe = route.page === 'home' || openSlug !== null;
+  const onGlobe = !closed && (route.page === 'home' || openSlug !== null);
 
   // The grid is there to scroll to once the projects have loaded.
   const toGrid = route.page === 'home' && route.grid === true && list !== null;
@@ -42,10 +48,11 @@ export default function App() {
       contact: `Contact · ${SITE_TITLE}`,
       privacy: `Privacy · ${SITE_TITLE}`,
     };
-    document.title = titles[route.page];
+    if (closed && !content.loaded) return;
+    document.title = closed ? `Under construction · ${SITE_TITLE}` : titles[route.page];
     // Counted once the title is the page's own: a project's waits for the projects to load.
     if (route.page !== 'project' || list !== null) pageView(path, document.title);
-  }, [route.page, path, openSlug, list, projectMissing]);
+  }, [route.page, path, openSlug, list, projectMissing, closed, content.loaded]);
 
   // The favicon chosen in the dashboard, once there is one; until then the site's own.
   const { faviconUrl } = content.settings;
@@ -61,9 +68,10 @@ export default function App() {
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <SiteHeader current={route.page === 'project' ? 'home' : route.page} onNavigate={goTo} />
+      <SiteHeader current={route.page === 'project' ? 'home' : route.page} onNavigate={goTo} logoOnly={underConstruction} />
 
-      {list && list.length > 0 ? (
+      {closed && (content.loaded ? <UnderConstruction onNavigate={goTo} /> : <main className="page" id="content" aria-busy="true" />)}
+      {!closed && list && list.length > 0 ? (
         // Stays mounted behind the other pages, so the globe and the strip are ready the moment you come back.
         <Explorer
           projects={list}
@@ -88,12 +96,12 @@ export default function App() {
           </main>
         )
       )}
-      {projectMissing && <ProjectNotFound onShowProjects={showGrid} />}
-      {route.page === 'studio' && <StudioPage services={content.services} offices={content.offices} onContact={() => goTo('contact')} />}
+      {!closed && projectMissing && <ProjectNotFound onShowProjects={showGrid} />}
+      {!closed && route.page === 'studio' && <StudioPage services={content.services} offices={content.offices} onContact={() => goTo('contact')} />}
       {route.page === 'contact' && <ContactPage offices={content.offices} contact={content.contact} />}
       {route.page === 'privacy' && <PrivacyPage onCookieSettings={askConsent} />}
 
-      <SiteFooter socialLinks={content.socialLinks} onNavigate={goTo} onCookieSettings={askConsent} />
+      <SiteFooter socialLinks={content.socialLinks} onNavigate={goTo} onCookieSettings={askConsent} underConstruction={underConstruction} />
       {askingConsent && (
         <ConsentBanner
           onNavigate={goTo}

@@ -20,4 +20,6 @@ export interface ContactInfo {
 export interface SiteSettings {
   /** Null until a favicon is chosen in the dashboard; the site then keeps its own icon. */
   faviconUrl: string | null;
+  /** Switched on in the dashboard: every page but Contact and Privacy shows the under-construction page. */
+  underConstruction: boolean;
 }
