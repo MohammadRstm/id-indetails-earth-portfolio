@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../data/project';
-import { fetchProjects } from '../data/projectSource';
+import { getProjects } from '../api/website';
 
 export type ProjectsState =
   | { status: 'loading' }
@@ -12,7 +12,7 @@ export function useProjects(): ProjectsState {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchProjects(controller.signal)
+    getProjects(controller.signal)
       .then((projects) => setState({ status: 'ready', projects }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;

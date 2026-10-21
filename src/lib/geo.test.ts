@@ -1,7 +1,7 @@
 import { Euler, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import { demoProjects } from '../data/demoProjects';
 import type { Project } from '../data/project';
+import { testProjects } from '../test/projects';
 import {
   formatCoordinates,
   greatCircleAngle,
@@ -121,8 +121,8 @@ describe('orientationFor', () => {
     expect(orientationFor(-80, 10).pitch).toBeCloseTo(-MAX_FOCUS_PITCH);
   });
 
-  it('brings every demo project onto the near side of the globe', () => {
-    for (const { slug, location } of demoProjects) {
+  it('brings every test project onto the near side of the globe', () => {
+    for (const { slug, location } of testProjects) {
       const point = faceCamera(location.lat, location.lng);
       expect(point.z, slug).toBeGreaterThan(0.5);
       expect(Math.abs(point.x), slug).toBeLessThan(1e-9);
@@ -156,9 +156,9 @@ describe('wrapAngle', () => {
 });
 
 describe('groupByLocation', () => {
-  it('gives every demo project its own place', () => {
-    const groups = groupByLocation(demoProjects);
-    expect(groups).toHaveLength(demoProjects.length);
+  it('gives every test project its own place', () => {
+    const groups = groupByLocation(testProjects);
+    expect(groups).toHaveLength(testProjects.length);
     for (const group of groups) expect(group.projects, group.id).toHaveLength(1);
   });
 
@@ -288,7 +288,7 @@ describe('minimumSpanningTree', () => {
   });
 
   it('reaches every place exactly once', () => {
-    const places = demoProjects.map((item, index) => place(`p${index}`, item.location.lat, item.location.lng));
+    const places = testProjects.map((item, index) => place(`p${index}`, item.location.lat, item.location.lng));
     const edges = minimumSpanningTree(places);
     expect(edges).toHaveLength(places.length - 1);
     const reached = new Set(['p0']);

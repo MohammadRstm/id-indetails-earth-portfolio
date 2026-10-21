@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { demoProjects } from '../data/demoProjects';
 import type { Project } from '../data/project';
+import { testProjects } from '../test/projects';
 import {
   filterOptions,
   filterProjects,
@@ -13,11 +13,11 @@ import {
 } from './projectFilters';
 
 const slugs = (projects: Project[]) => projects.map((project) => project.slug);
-const only = (overrides: Partial<ProjectFilters>) => filterProjects(demoProjects, { ...noFilters, ...overrides });
+const only = (overrides: Partial<ProjectFilters>) => filterProjects(testProjects, { ...noFilters, ...overrides });
 
 describe('filterProjects', () => {
   it('keeps everything with no filters', () => {
-    expect(filterProjects(demoProjects, noFilters)).toHaveLength(demoProjects.length);
+    expect(filterProjects(testProjects, noFilters)).toHaveLength(testProjects.length);
   });
 
   it('filters by type, status, year and country', () => {
@@ -40,7 +40,7 @@ describe('filterProjects', () => {
   });
 
   it('still searches a project with no city, by its country', () => {
-    const countryOnly = { ...demoProjects[0], location: { ...demoProjects[0].location, city: null } };
+    const countryOnly = { ...testProjects[0], location: { ...testProjects[0].location, city: null } };
     expect(filterProjects([countryOnly], { ...noFilters, search: 'portugal' })).toHaveLength(1);
     expect(filterProjects([countryOnly], { ...noFilters, search: 'lisbon' })).toHaveLength(0);
   });
@@ -48,29 +48,29 @@ describe('filterProjects', () => {
 
 describe('sortProjects', () => {
   it('puts the newest first by default, then titles A to Z', () => {
-    const years = sortProjects(demoProjects, 'newest').map((project) => project.year);
+    const years = sortProjects(testProjects, 'newest').map((project) => project.year);
     expect(years).toEqual([...years].sort((a, b) => b - a));
   });
 
   it('can put the oldest first or sort by title', () => {
-    const years = sortProjects(demoProjects, 'oldest').map((project) => project.year);
+    const years = sortProjects(testProjects, 'oldest').map((project) => project.year);
     expect(years).toEqual([...years].sort((a, b) => a - b));
-    const titles = sortProjects(demoProjects, 'title').map((project) => project.title);
+    const titles = sortProjects(testProjects, 'title').map((project) => project.title);
     expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b)));
   });
 
   it('leaves the original list alone', () => {
-    const before = slugs(demoProjects);
-    sortProjects(demoProjects, 'title');
-    expect(slugs(demoProjects)).toEqual(before);
+    const before = slugs(testProjects);
+    sortProjects(testProjects, 'title');
+    expect(slugs(testProjects)).toEqual(before);
   });
 });
 
 describe('filterOptions', () => {
   it('offers only the values the projects have, years newest first', () => {
-    const options = filterOptions(demoProjects);
-    expect(new Set(options.types)).toEqual(new Set(demoProjects.map((project) => project.type)));
-    expect(options.years[0]).toBe(Math.max(...demoProjects.map((project) => project.year)));
+    const options = filterOptions(testProjects);
+    expect(new Set(options.types)).toEqual(new Set(testProjects.map((project) => project.type)));
+    expect(options.years[0]).toBe(Math.max(...testProjects.map((project) => project.year)));
     expect(options.countries).toContain('Lebanon');
     expect(new Set(options.countries).size).toBe(options.countries.length);
   });

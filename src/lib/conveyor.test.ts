@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { demoProjects } from '../data/demoProjects';
 import { CONVEYOR_LIMIT, type Project } from '../data/project';
+import { testProjects } from '../test/projects';
 import { conveyorProjects } from './conveyor';
 
 const many = (count: number, marked: (index: number) => boolean): Project[] =>
   Array.from({ length: count }, (_, index) => ({
-    ...demoProjects[0],
+    ...testProjects[0],
     id: index + 1,
     slug: `project-${index + 1}`,
     showInConveyor: marked(index),

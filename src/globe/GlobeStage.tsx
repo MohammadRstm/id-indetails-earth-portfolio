@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
-import { offices, type Office } from '../data/offices';
+import type { Office } from '../data/offices';
 import { projectTypeLabel, type Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
 import { orientationFor, tagSide } from '../lib/geo';
@@ -22,6 +22,7 @@ const nowSeconds = () => performance.now() / 1000;
 
 interface GlobeStageProps {
   groups: LocationGroup[];
+  offices: Office[];
   activeGroupId: string;
   activeProject: Project;
   /** Close-up of the active project, used while its page is open. */
@@ -38,6 +39,7 @@ interface GlobeStageProps {
 
 export function GlobeStage({
   groups,
+  offices,
   activeGroupId,
   activeProject,
   closeUp,
@@ -193,7 +195,7 @@ export function GlobeStage({
               onSelect={onSelectGroup}
             />
           ))}
-        {webgl && activeGroup && <TypeTag key={activeGroup.id} group={activeGroup} projector={projector} />}
+        {webgl && activeGroup && <TypeTag key={activeGroup.id} group={activeGroup} offices={offices} projector={projector} />}
         {webgl && offices.map((office) => <OfficeLabel key={office.id} office={office} projector={projector} />)}
       </div>
 
@@ -261,7 +263,7 @@ const TAG_HEAD = 5;
  * and beside its point, with a pointer to it. Only the selected place has
  * one, so the globe stays clean.
  */
-function TypeTag({ group, projector }: { group: LocationGroup; projector: MarkerProjector }) {
+function TypeTag({ group, offices, projector }: { group: LocationGroup; offices: Office[]; projector: MarkerProjector }) {
   const side = tagSide(group, offices);
   const { id, lat, lng } = group;
   const attach = useCallback(

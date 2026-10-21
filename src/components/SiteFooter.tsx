@@ -1,9 +1,9 @@
-import { socialLinks } from '../data/site';
+import type { SocialLink } from '../data/site';
 import type { Page } from '../hooks/useSiteRoute';
 import { LogoMark } from './icons';
 import { PageLink } from './PageLink';
 
-export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void }) {
+export function SiteFooter({ socialLinks, onNavigate }: { socialLinks: SocialLink[]; onNavigate: (page: Page) => void }) {
   return (
     <footer className="site-footer">
       <div className="site-footer__top">
@@ -11,17 +11,19 @@ export function SiteFooter({ onNavigate }: { onNavigate: (page: Page) => void })
           <LogoMark className="wordmark__logo" />
           <span className="wordmark__name">ID-Indetails</span>
         </div>
-        <nav aria-label="Social media">
-          <ul className="site-footer__social">
-            {socialLinks.map((link) => (
-              <li key={link.label}>
-                <a href={link.url} target="_blank" rel="noopener noreferrer">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {socialLinks.length > 0 && (
+          <nav aria-label="Social media">
+            <ul className="site-footer__social">
+              {socialLinks.map((link) => (
+                <li key={link.id}>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         <nav aria-label="Footer">
           <ul className="site-footer__nav">
             <li>

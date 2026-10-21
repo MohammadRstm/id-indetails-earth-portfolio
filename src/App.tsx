@@ -7,12 +7,14 @@ import { SiteHeader } from './components/SiteHeader';
 import { StudioPage } from './components/StudioPage';
 import { usePrefersReducedMotion } from './hooks/useMediaQuery';
 import { useProjects } from './hooks/useProjects';
+import { useSiteContent } from './hooks/useSiteContent';
 import { GRID_ID, pathFor, savedScrollY, useSiteRoute, type Route } from './hooks/useSiteRoute';
 
 const SITE_TITLE = 'ID-Indetails';
 
 export default function App() {
   const projects = useProjects();
+  const content = useSiteContent();
   const reducedMotion = usePrefersReducedMotion();
   const list = projects.status === 'ready' ? projects.projects : null;
   const { route, openProject, closeProject, goTo, showGrid } = useSiteRoute();
@@ -36,6 +38,15 @@ export default function App() {
     document.title = titles[route.page];
   }, [route.page, openSlug, list, projectMissing]);
 
+  // The favicon chosen in the dashboard, once there is one; until then the site's own.
+  const { faviconUrl } = content.settings;
+  useEffect(() => {
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!icon || !faviconUrl) return;
+    icon.removeAttribute('type');
+    icon.href = faviconUrl;
+  }, [faviconUrl]);
+
   return (
     <>
       <a className="skip-link" href="#content">
@@ -47,6 +58,7 @@ export default function App() {
         // Stays mounted behind the other pages, so the globe and the strip are ready the moment you come back.
         <Explorer
           projects={list}
+          offices={content.offices}
           openSlug={openSlug}
           active={onGlobe}
           onOpenProject={openProject}
@@ -68,10 +80,10 @@ export default function App() {
         )
       )}
       {projectMissing && <ProjectNotFound onShowProjects={showGrid} />}
-      {route.page === 'studio' && <StudioPage onContact={() => goTo('contact')} />}
-      {route.page === 'contact' && <ContactPage />}
+      {route.page === 'studio' && <StudioPage services={content.services} offices={content.offices} onContact={() => goTo('contact')} />}
+      {route.page === 'contact' && <ContactPage offices={content.offices} contact={content.contact} />}
 
-      <SiteFooter onNavigate={goTo} />
+      <SiteFooter socialLinks={content.socialLinks} onNavigate={goTo} />
     </>
   );
 }
