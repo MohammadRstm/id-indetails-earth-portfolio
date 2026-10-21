@@ -27,6 +27,20 @@ describe('parseProject', () => {
     expect(project.conveyorOrder).toBe(3);
   });
 
+  it('reads a project with no concept as having none', () => {
+    const project = parseProject(apiProject);
+    expect(project.conceptDescription).toBeNull();
+    expect(project.conceptImages).toEqual([]);
+    expect(parseProject({ ...apiProject, conceptDescription: '  ', conceptImages: [] }).conceptDescription).toBeNull();
+  });
+
+  it('reads the concept: its text, and at most five pictures in order', () => {
+    const pictures = Array.from({ length: 7 }, (_, index) => ({ src: `/api/public/website/files/${20 + index}`, alt: `Sketch ${index + 1}` }));
+    const project = parseProject({ ...apiProject, conceptDescription: 'Courtyards first.', conceptImages: pictures });
+    expect(project.conceptDescription).toBe('Courtyards first.');
+    expect(project.conceptImages.map((picture) => picture.alt)).toEqual(['Sketch 1', 'Sketch 2', 'Sketch 3', 'Sketch 4', 'Sketch 5']);
+  });
+
   it('accepts an empty client and a project outside the strip', () => {
     const project = parseProject({ ...apiProject, client: '', showInConveyor: false, conveyorOrder: null });
     expect(project.client).toBe('');
@@ -54,6 +68,9 @@ describe('parseProject', () => {
       { ...apiProject, thumbnail: '' },
       { ...apiProject, hero: null },
       { ...apiProject, gallery: 'none' },
+      { ...apiProject, conceptImages: 'none' },
+      { ...apiProject, conceptImages: [{ alt: 'no picture' }] },
+      { ...apiProject, conceptDescription: 42 },
       'not a project',
     ];
     for (const value of broken) expect(() => parseProject(value), JSON.stringify(value)).toThrow(ParseError);

@@ -10,6 +10,7 @@ import {
 import { formatCoordinates } from '../lib/geo';
 import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon } from './icons';
 import { LoadedImage } from './LoadedImage';
+import { ProjectConcept } from './ProjectConcept';
 import { ProjectGallery } from './ProjectGallery';
 import { ScrollLink } from './ScrollLink';
 
@@ -102,6 +103,8 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
           </div>
         </dl>
       </div>
+
+      <ProjectConcept images={project.conceptImages} description={project.conceptDescription} title={project.title} />
 
       <ProjectGallery images={project.gallery} title={project.title} />
 
