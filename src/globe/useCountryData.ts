@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CanvasTexture, RepeatWrapping, type Texture } from 'three';
-import countriesUrl from 'world-atlas/countries-50m.json?url';
-import { decodeCountries, unwrapRing, type CountryData, type CountryShape } from '../lib/countries';
+import { decodeCountries, unwrapRing, type CountriesTopology, type CountryData, type CountryShape } from '../lib/countries';
+import { loadCountryTopology } from './preload';
+import type { GlobeQuality } from './quality';
 
 export interface CountryAssets {
   data: CountryData;
@@ -12,9 +13,9 @@ export interface CountryAssets {
 export type CountryState = { status: 'loading' } | { status: 'ready'; assets: CountryAssets } | { status: 'error' };
 
 /** A large mask only where the screen can show it; the land edge is softened by filtering either way. */
-function maskWidth(): number {
+function maskWidth(maxWidth: number): number {
   const longestScreenEdge = Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1);
-  return longestScreenEdge >= 2000 ? 4096 : 2048;
+  return Math.min(maxWidth, longestScreenEdge >= 2000 ? 4096 : 2048);
 }
 
 function createCanvas(width: number): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
@@ -101,38 +102,36 @@ export function createHighlightTexture(country: CountryShape): Texture {
  * Loads the Natural Earth country outlines (public domain, via `world-atlas`)
  * outside React Suspense so failure can be shown in the page, and draws the
  * land mask the globe is shaded from. The texture is disposed on unmount.
+ * A low-power device gets a smaller mask.
  */
-export function useCountryData(enabled: boolean): CountryState {
+export function useCountryData(enabled: boolean, { maxMaskWidth }: GlobeQuality): CountryState {
   const [state, setState] = useState<CountryState>({ status: 'loading' });
 
   useEffect(() => {
     if (!enabled) return;
-    const controller = new AbortController();
+    let cancelled = false;
     let land: Texture | null = null;
 
-    fetch(countriesUrl, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Country outlines responded ${response.status}`);
-        return response.json();
-      })
+    loadCountryTopology()
       .then((topology) => {
-        const data = decodeCountries(topology);
-        land = new CanvasTexture(drawLandMask(data.countries, maskWidth()));
+        if (cancelled) return;
+        const data = decodeCountries(topology as CountriesTopology);
+        land = new CanvasTexture(drawLandMask(data.countries, maskWidth(maxMaskWidth)));
         land.wrapS = RepeatWrapping;
         land.anisotropy = 4;
         setState({ status: 'ready', assets: { data, land } });
       })
       .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
+        if (cancelled) return;
         console.warn('Country outlines failed to load; showing the simplified globe.', error);
         setState({ status: 'error' });
       });
 
     return () => {
-      controller.abort();
+      cancelled = true;
       land?.dispose();
     };
-  }, [enabled]);
+  }, [enabled, maxMaskWidth]);
 
   return state;
 }

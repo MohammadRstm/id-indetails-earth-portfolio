@@ -29,7 +29,7 @@ interface CountryProperties {
   name: string;
 }
 
-type CountriesTopology = Topology<{ countries: GeometryCollection<CountryProperties> }>;
+export type CountriesTopology = Topology<{ countries: GeometryCollection<CountryProperties> }>;
 
 /** Decodes the Natural Earth countries TopoJSON from the `world-atlas` package. */
 export function decodeCountries(topology: CountriesTopology): CountryData {

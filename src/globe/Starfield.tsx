@@ -4,20 +4,19 @@ import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMateria
 import { mulberry32 } from '../lib/random';
 import { starsFragmentShader, starsVertexShader } from './shaders';
 
-const STAR_COUNT = 1100;
 /** Stars fill a cone behind the globe; the camera never turns, so nothing is wasted. */
 const CONE_HALF_ANGLE = (52 * Math.PI) / 180;
 const STAR_PALETTE = ['#f2f2f2', '#f2f2f2', '#d9d9d9', '#bfc6d1', '#e8e2d6'].map((hex) => new Color(hex));
 
-function buildStars(): BufferGeometry {
+function buildStars(count: number): BufferGeometry {
   const random = mulberry32(20261016);
-  const positions = new Float32Array(STAR_COUNT * 3);
-  const colors = new Float32Array(STAR_COUNT * 3);
-  const sizes = new Float32Array(STAR_COUNT);
-  const brightness = new Float32Array(STAR_COUNT);
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  const brightness = new Float32Array(count);
   const cosMax = Math.cos(CONE_HALF_ANGLE);
 
-  for (let i = 0; i < STAR_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     // Uniform direction inside a cone around -Z.
     const cosTheta = 1 - random() * (1 - cosMax);
     const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
@@ -41,9 +40,9 @@ function buildStars(): BufferGeometry {
   return geometry;
 }
 
-export function Starfield() {
+export function Starfield({ count }: { count: number }) {
   const dpr = useThree((state) => state.viewport.dpr);
-  const geometry = useMemo(() => buildStars(), []);
+  const geometry = useMemo(() => buildStars(count), [count]);
   // The pixel ratio only changes when the window moves between screens or zooms, so a new material then is cheap.
   const material = useMemo(
     () =>

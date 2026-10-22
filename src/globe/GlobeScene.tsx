@@ -15,6 +15,7 @@ import type { GlobeLayout } from './GlobeLayout';
 import { MarkerBeacons } from './MarkerBeacons';
 import type { MarkerProjector } from './MarkerProjector';
 import { OfficeMarkers } from './OfficeMarkers';
+import type { GlobeQuality } from './quality';
 import { Routes } from './Routes';
 import { createSceneUniforms, type SceneUniforms } from './sceneUniforms';
 import { Starfield } from './Starfield';
@@ -34,6 +35,7 @@ export interface GlobeSceneProps {
   countries: CountryState;
   /** Ripples and route flow run only while this is on. */
   animate: boolean;
+  quality: GlobeQuality;
 }
 
 export function GlobeScene({
@@ -46,6 +48,7 @@ export function GlobeScene({
   layout,
   countries,
   animate,
+  quality,
 }: GlobeSceneProps) {
   const [uniforms] = useState(createSceneUniforms);
   const [effects] = useState(createEffectUniforms);
@@ -57,12 +60,12 @@ export function GlobeScene({
 
   return (
     <>
-      <Starfield />
+      <Starfield count={quality.stars} />
       <group ref={rollRef} rotation={[0, 0, rollFor(0)]}>
         <group ref={globeRef}>
           {countries.status === 'ready' && (
             <>
-              <Earth assets={countries.assets} uniforms={uniforms} />
+              <Earth assets={countries.assets} uniforms={uniforms} segments={quality.sphereSegments} />
               <CountryBorders data={countries.assets.data} activeCountryId={activeCountryId} uniforms={uniforms} />
             </>
           )}
@@ -72,7 +75,7 @@ export function GlobeScene({
               <Routes groups={groups} activeGroupId={activeGroupId} uniforms={uniforms} effects={effects} />
               <MarkerBeacons groups={groups} activeGroupId={activeGroupId} uniforms={uniforms} effects={effects} />
               <OfficeMarkers offices={offices} uniforms={uniforms} />
-              <Dust />
+              {quality.dust && <Dust />}
             </>
           )}
         </group>
@@ -87,6 +90,7 @@ export function GlobeScene({
         globeRef={globeRef}
         revealing={countries.status !== 'loading'}
         animate={animate}
+        effectsFps={quality.effectsFps}
       />
     </>
   );
@@ -103,16 +107,21 @@ interface GlobeDriverProps {
   globeRef: RefObject<Group | null>;
   revealing: boolean;
   animate: boolean;
+  /** The frame rate while only the ripples and route dashes move. */
+  effectsFps: number;
 }
 
 /**
  * The single per-frame loop. The canvas renders on demand; this keeps
- * requesting frames only while something is actually moving.
+ * requesting frames only while something is actually moving: at the display's
+ * rate while the globe turns or fades in, and at `effectsFps` while only the
+ * ripples and route dashes move, which is all a still globe needs.
  */
-function GlobeDriver({ controller, projector, layout, uniforms, effects, rollRef, globeRef, revealing, animate }: GlobeDriverProps) {
+function GlobeDriver({ controller, projector, layout, uniforms, effects, rollRef, globeRef, revealing, animate, effectsFps }: GlobeDriverProps) {
   const invalidate = useThree((state) => state.invalidate);
   const framed = useRef({ version: -1, width: 0, height: 0, zoom: -1 });
   const reveal = useRef(0);
+  const effectsTimer = useRef(0);
   // The uniform objects are shared by every globe material and mutated in place each frame.
   const sceneUniforms = useRef(uniforms);
   const effectUniforms = useRef(effects);
@@ -133,6 +142,7 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, rollRef
   }, [revealing, invalidate]);
 
   useEffect(() => invalidate(), [animate, invalidate]);
+  useEffect(() => () => window.clearTimeout(effectsTimer.current), []);
 
   useFrame((state, delta) => {
     const now = performance.now() / 1000;
@@ -155,10 +165,7 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, rollRef
     if (rollRef.current) rollRef.current.rotation.z = rollFor(zoom);
 
     effectUniforms.current.uAnimate.value = animate ? 1 : 0;
-    if (animate) {
-      effectUniforms.current.uTime.value += dt;
-      active = true;
-    }
+    if (animate) effectUniforms.current.uTime.value += dt;
 
     if (revealing && reveal.current < 1) {
       reveal.current = Math.min(1, reveal.current + dt / REVEAL_SECONDS);
@@ -167,7 +174,15 @@ function GlobeDriver({ controller, projector, layout, uniforms, effects, rollRef
     }
 
     if (globe) projector.update(camera, globe, width, height);
-    if (active) state.invalidate();
+    if (active) {
+      state.invalidate();
+    } else if (animate && !effectsTimer.current) {
+      // Asks a little early, so the frame lands on the display refresh that is due.
+      effectsTimer.current = window.setTimeout(() => {
+        effectsTimer.current = 0;
+        state.invalidate();
+      }, Math.max(0, 1000 / effectsFps - 4));
+    }
   });
 
   return null;
