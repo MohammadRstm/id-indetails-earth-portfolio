@@ -1,4 +1,5 @@
-export type ProjectType = 'villa' | 'residential' | 'hotel';
+/** A type's key, like a slug ("villa", "beach-house"): the dashboard takes any architectural type. */
+export type ProjectType = string;
 
 export type ProjectStatus = 'completed' | 'in-progress';
 
@@ -35,6 +36,8 @@ export interface Project {
   slug: string;
   title: string;
   type: ProjectType;
+  /** The type as shown ("Villa", "Beach house"). */
+  typeLabel: string;
   status: ProjectStatus;
   /** The client organisation. */
   client: string;
@@ -62,11 +65,8 @@ export const CONVEYOR_LIMIT = 20;
 /** The most concept pictures a project page shows. */
 export const CONCEPT_LIMIT = 5;
 
-export const projectTypeLabel: Record<ProjectType, string> = {
-  villa: 'Villa',
-  residential: 'Residential',
-  hotel: 'Hotel',
-};
+/** The type's label after "a" or "an": "a villa", "an office". */
+export const aTypeOf = (project: Project) => `${/^[aeiou]/i.test(project.typeLabel) ? 'an' : 'a'} ${project.typeLabel.toLowerCase()}`;
 
 export const projectStatusLabel: Record<ProjectStatus, string> = {
   completed: 'Completed',

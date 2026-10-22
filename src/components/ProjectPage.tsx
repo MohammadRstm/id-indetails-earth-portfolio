@@ -3,7 +3,7 @@ import {
   hasExactPosition,
   placeName,
   projectStatusLabel,
-  projectTypeLabel,
+  aTypeOf,
   type Project,
   type ProjectImage,
 } from '../data/project';
@@ -30,7 +30,7 @@ export function ProjectHeading({ project, onBack }: ProjectHeadingProps) {
       </button>
       <div className="heading__body">
         <p className="heading__eyebrow">
-          {projectTypeLabel[project.type]} · {placeName(location)}
+          {project.typeLabel} · {placeName(location)}
         </p>
         <h2 className="heading__title" id="project-title">
           {project.title}
@@ -99,7 +99,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
           </div>
           <div>
             <dt>Type</dt>
-            <dd>{projectTypeLabel[project.type]}</dd>
+            <dd>{project.typeLabel}</dd>
           </div>
         </dl>
       </div>
@@ -109,7 +109,7 @@ export function ProjectPage({ project, previous, next, onOpen, onContact }: Proj
       <ProjectGallery images={project.gallery} title={project.title} />
 
       <aside className="enquiry" aria-labelledby="enquiry-title">
-        <h3 id="enquiry-title">Planning a {projectTypeLabel[project.type].toLowerCase()} of your own?</h3>
+        <h3 id="enquiry-title">Planning {aTypeOf(project)} of your own?</h3>
         <button
           type="button"
           className="text-action"

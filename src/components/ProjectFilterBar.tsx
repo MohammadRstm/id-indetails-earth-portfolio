@@ -1,4 +1,4 @@
-import { projectStatusLabel, projectTypeLabel } from '../data/project';
+import { projectStatusLabel } from '../data/project';
 import { filterOptions, hasFilters, type ProjectFilters, type ProjectSort } from '../lib/projectFilters';
 
 const SORT_LABELS: Record<ProjectSort, string> = { newest: 'Newest first', oldest: 'Oldest first', title: 'Title A to Z' };
@@ -34,8 +34,8 @@ export function ProjectFilterBar({ filters, options, onChange, onClear }: Projec
         >
           <option value="">All types</option>
           {options.types.map((type) => (
-            <option key={type} value={type}>
-              {projectTypeLabel[type]}
+            <option key={type.key} value={type.key}>
+              {type.label}
             </option>
           ))}
         </select>

@@ -1,4 +1,7 @@
-import { projectStatusLabel, projectTypeLabel, type Project, type ProjectStatus, type ProjectType } from '../data/project';
+import { projectStatusLabel, type Project, type ProjectStatus, type ProjectType } from '../data/project';
+
+/** A type's key as the API makes it, like a slug. */
+const TYPE_KEY = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export type ProjectSort = 'newest' | 'oldest' | 'title';
 
@@ -47,7 +50,10 @@ export function sortProjects(projects: Project[], sort: ProjectSort): Project[] 
 export function filterOptions(projects: Project[]) {
   const unique = <T,>(values: T[]) => [...new Set(values)];
   return {
-    types: unique(projects.map((project) => project.type)).sort((a, b) => projectTypeLabel[a].localeCompare(projectTypeLabel[b])),
+    // each type once, by its key, with its label to show
+    types: [...new Map(projects.map((project) => [project.type, project.typeLabel])).entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
     statuses: unique(projects.map((project) => project.status)).sort((a, b) =>
       projectStatusLabel[a].localeCompare(projectStatusLabel[b]),
     ),
@@ -80,7 +86,7 @@ export function filtersFromQuery(query: string): ProjectFilters {
   const sort = params.get('sort');
   return {
     search: params.get('q') ?? '',
-    type: type && type in projectTypeLabel ? (type as ProjectType) : null,
+    type: type && TYPE_KEY.test(type) ? type : null,
     status: status && status in projectStatusLabel ? (status as ProjectStatus) : null,
     year: params.has('year') && Number.isInteger(year) ? year : null,
     country: params.get('country') || null,

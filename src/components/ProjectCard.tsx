@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react';
-import { placeName, projectStatusLabel, projectTypeLabel, type Project } from '../data/project';
+import { placeName, projectStatusLabel, type Project } from '../data/project';
 import { pathFor } from '../hooks/useSiteRoute';
 import { LoadedImage } from './LoadedImage';
 
@@ -17,7 +17,7 @@ export function ProjectCard({ project, onOpen }: { project: Project; onOpen: (sl
         <LoadedImage src={project.thumbnail} alt="" loading="lazy" decoding="async" />
       </span>
       <span className="project-card__meta">
-        {projectTypeLabel[project.type]} · {project.year}
+        {project.typeLabel} · {project.year}
       </span>
       <span className="project-card__title">{project.title}</span>
       <span className="project-card__place">{placeName(project.location)}</span>
