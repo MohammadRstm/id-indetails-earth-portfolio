@@ -72,7 +72,9 @@ const nowSeconds = () => performance.now() / 1000;
  * projects arrive from the top (or the left on narrow screens), and it can be
  * scrolled, dragged or flung. The card passing the centre is the current
  * project. Motion is written straight to the DOM each frame; React only
- * re-renders when a new card needs to be mounted.
+ * re-renders when a new card needs to be mounted. The frame loop sleeps while
+ * nothing moves (paused, hovered, or waiting to resume) and is woken by
+ * whatever could move it again.
  */
 export function ProjectStrip({
   projects,
@@ -102,9 +104,13 @@ export function ProjectStrip({
   const [metrics, setMetrics] = useState<Metrics>({ pitch: 1, reach: 2 });
   // The frame loop reads the latest props through this, so it never restarts for a prop change.
   const live = useRef({ drifting, reducedMotion, axis, metrics, onActiveChange, count });
+  /** Restarts the sleeping frame loop; a no-op while it runs or while the strip is hidden. */
+  const wake = useRef(() => {});
 
   useLayoutEffect(() => {
     live.current = { drifting, reducedMotion, axis, metrics, onActiveChange, count };
+    // A new card, a new size or a change of props may all need the loop: new cards stay hidden until it places them.
+    wake.current();
   });
 
   // Card size follows the strip's width (or height when horizontal); the spacing follows the card.
@@ -143,6 +149,7 @@ export function ProjectStrip({
     } else {
       m.target = goal;
     }
+    wake.current();
   }, [activeIndex, count, running, reducedMotion]);
 
   // Coming back from a project, give the visitor a moment before the strip moves on. On first load it moves straight away.
@@ -155,15 +162,18 @@ export function ProjectStrip({
   useEffect(() => {
     if (!running) return;
     let frame = 0;
+    let timer = 0;
     let last = nowSeconds();
     let shownBase = Math.floor(motion.current.offset);
 
     const tick = () => {
+      frame = 0;
       const now = nowSeconds();
       const dt = Math.min(0.05, now - last);
       last = now;
       const m = motion.current;
       const { drifting: mayDrift, reducedMotion: reduced, axis: direction, metrics: size, count: total } = live.current;
+      let moving = true;
 
       if (m.drag?.moved) {
         // The pointer handlers move the strip directly.
@@ -188,6 +198,8 @@ export function ProjectStrip({
         m.offset += DRIFT_SPEED * (DRIFT_DWELL + (1 - DRIFT_DWELL) * between * between) * dt;
       } else if (!m.drag && Math.abs(m.offset - Math.round(m.offset)) > 1e-3) {
         m.target = Math.round(m.offset);
+      } else {
+        moving = false;
       }
 
       const centre = Math.round(m.offset);
@@ -214,11 +226,24 @@ export function ProjectStrip({
         shownBase = nextBase;
         setBase(nextBase);
       }
-      frame = requestAnimationFrame(tick);
+
+      if (moving) frame = requestAnimationFrame(tick);
+      // Only the pause after a scroll, drag or click is left: sleep until it ends.
+      else if (mayDrift && !m.hover && !m.drag) timer = window.setTimeout(wake.current, (m.pausedUntil - now) * 1000);
     };
 
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    wake.current = () => {
+      window.clearTimeout(timer);
+      if (frame) return;
+      last = nowSeconds();
+      frame = requestAnimationFrame(tick);
+    };
+    wake.current();
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      wake.current = () => {};
+    };
   }, [running]);
 
   useEffect(() => {
@@ -239,6 +264,7 @@ export function ProjectStrip({
       m.velocity = 0;
       m.wheelAt = now;
       m.pausedUntil = now + RESUME_AFTER_SECONDS;
+      wake.current();
     };
     strip.addEventListener('wheel', onWheel, { passive: false });
     return () => strip.removeEventListener('wheel', onWheel);
@@ -251,6 +277,7 @@ export function ProjectStrip({
     const m = motion.current;
     const at = coordinate(event);
     m.drag = { pointerId: event.pointerId, start: at, last: at, lastTime: nowSeconds(), startOffset: m.offset, velocity: 0, moved: false };
+    wake.current();
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -275,6 +302,7 @@ export function ProjectStrip({
     drag.velocity = 0.4 * drag.velocity + 0.6 * ((at - drag.last) / pitch / dt);
     drag.last = at;
     drag.lastTime = now;
+    wake.current();
   };
 
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
@@ -282,6 +310,7 @@ export function ProjectStrip({
     const drag = m.drag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     m.drag = null;
+    wake.current();
     if (!drag.moved) return;
     const now = nowSeconds();
     // A pointer that stopped before release should not fling the strip.
@@ -320,6 +349,7 @@ export function ProjectStrip({
       }}
       onPointerLeave={() => {
         motion.current.hover = false;
+        wake.current();
       }}
     >
       {slotNumbers.map((slot) => {

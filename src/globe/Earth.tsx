@@ -7,6 +7,8 @@ import type { CountryAssets } from './useCountryData';
 interface EarthProps {
   assets: CountryAssets;
   uniforms: SceneUniforms;
+  /** Width and height segments of the sphere. */
+  segments: [number, number];
 }
 
 /**
@@ -14,8 +16,8 @@ interface EarthProps {
  * the outside. The near side writes depth so markers and routes behind the
  * planet stay hidden even though its oceans are see-through.
  */
-export function Earth({ assets, uniforms }: EarthProps) {
-  const geometry = useMemo(() => new SphereGeometry(1, 192, 128), []);
+export function Earth({ assets, uniforms, segments: [widthSegments, heightSegments] }: EarthProps) {
+  const geometry = useMemo(() => new SphereGeometry(1, widthSegments, heightSegments), [widthSegments, heightSegments]);
   const [far, near] = useMemo(() => {
     const pass = (side: Side, farSide: boolean) =>
       new ShaderMaterial({

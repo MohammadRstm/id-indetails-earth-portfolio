@@ -164,10 +164,10 @@ export function Routes({ groups, activeGroupId, uniforms, effects }: RoutesProps
         moving = true;
       }
       if (touching && effectUniforms.current.uAnimate.value > 0) {
-        // Flows away from the selected place, whichever end of the arc it is.
+        // Flows away from the selected place, whichever end of the arc it is. The globe's driver keeps
+        // frames coming at the effects' own rate while this runs, so it does not ask for more.
         const phase = material.uniforms.uPhase.value as number;
         setUniform(material, 'uPhase', (phase + (edge.from === activeGroupId ? 1 : -1) * FLOW_SPEED * dt) % DASH_PERIOD);
-        moving = true;
       }
     }
     if (moving) state.invalidate();

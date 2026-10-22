@@ -1,14 +1,16 @@
-import { Canvas } from '@react-three/fiber';
+import type { CameraProps } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import type { Office } from '../data/offices';
 import type { Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
 import { orientationFor, tagSide } from '../lib/geo';
 import { isWebGL2Available } from '../lib/webgl';
+import { GlobeCanvas } from './GlobeCanvas';
 import { GlobeController } from './GlobeController';
 import { GlobeLayout } from './GlobeLayout';
 import { GlobeScene } from './GlobeScene';
 import { MarkerProjector } from './MarkerProjector';
+import type { GlobeQuality } from './quality';
 import { useCountryData } from './useCountryData';
 import './globe.css';
 
@@ -17,6 +19,7 @@ const globeFill = (frameWidth: number) => (frameWidth < 600 ? 0.92 : 0.86);
 /** The opening turn starts this far west of the featured project. */
 const INTRO_YAW_OFFSET = -1.05;
 const DRAG_RADIANS_PER_RADIUS = 1.1;
+const CAMERA: CameraProps = { fov: 30, near: 0.1, far: 300, position: [0, 0, 6] };
 
 const nowSeconds = () => performance.now() / 1000;
 
@@ -32,6 +35,7 @@ interface GlobeStageProps {
   /** Ripples and route flow. */
   animate: boolean;
   reducedMotion: boolean;
+  quality: GlobeQuality;
   /** Empty layout cell the globe is centred in. */
   frameRef: RefObject<HTMLElement | null>;
   onSelectGroup: (groupId: string) => void;
@@ -46,11 +50,12 @@ export function GlobeStage({
   interactive,
   animate,
   reducedMotion,
+  quality,
   frameRef,
   onSelectGroup,
 }: GlobeStageProps) {
   const [webgl] = useState(isWebGL2Available);
-  const countries = useCountryData(webgl);
+  const countries = useCountryData(webgl, quality);
   const ready = countries.status !== 'loading';
   const [controller] = useState(() => {
     const { lat, lng } = activeProject.location;
@@ -147,6 +152,7 @@ export function GlobeStage({
       className="globe-stage"
       data-ready={ready}
       data-webgl={webgl}
+      data-low-power={quality.lowPower}
       data-interactive={interactive}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -155,12 +161,10 @@ export function GlobeStage({
     >
       {webgl && (
         <div className="globe-stage__canvas" role="img" aria-label="3D Earth with project locations marked">
-          <Canvas
-            frameloop="demand"
-            flat
-            dpr={[1, 1.5]}
-            camera={{ fov: 30, near: 0.1, far: 300, position: [0, 0, 6] }}
-            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          <GlobeCanvas
+            dpr={quality.dpr}
+            antialias={quality.antialias}
+            camera={CAMERA}
             onCreated={({ gl }) => {
               gl.setClearColor(0x000000, 0);
               gl.domElement.addEventListener('webglcontextlost', (event) => {
@@ -179,8 +183,9 @@ export function GlobeStage({
               activeLocation={activeProject.location}
               offices={offices}
               animate={animate && onScreen}
+              quality={quality}
             />
-          </Canvas>
+          </GlobeCanvas>
         </div>
       )}
 

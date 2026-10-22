@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType } from 'react';
 import type { Office } from '../data/offices';
 import { placeName, type Project } from '../data/project';
-import { GlobeStage } from '../globe/GlobeStage';
+import { loadGlobeStage, siteGlobeQuality, type GlobeStageModule } from '../globe/preload';
 import { useMediaQuery, usePrefersReducedMotion } from '../hooks/useMediaQuery';
 import { conveyorProjects } from '../lib/conveyor';
 import { groupByLocation } from '../lib/geo';
@@ -12,6 +12,15 @@ import { ProjectCaption } from './ProjectCaption';
 import { ProjectDock } from './ProjectDock';
 import { ProjectHeading, ProjectPage } from './ProjectPage';
 import { ProjectStrip } from './ProjectStrip';
+
+// three.js and the globe are most of the site's code, so they load on their own (see globe/preload.ts).
+// Should the download fail, the page goes on without a globe: every project is still listed.
+const GlobeStage = lazy<ComponentType<ComponentProps<GlobeStageModule['GlobeStage']>>>(() =>
+  loadGlobeStage().then(
+    (module) => ({ default: module.GlobeStage }),
+    () => ({ default: () => null }),
+  ),
+);
 
 const isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null;
@@ -49,6 +58,13 @@ export function Explorer({ projects, offices, openSlug, active, onOpenProject, o
   const frameRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroOnScreen, setHeroOnScreen] = useState(true);
+  // A visit that starts on another page builds no globe until the globe is first shown; after that it stays.
+  const [globeWanted, setGlobeWanted] = useState(active);
+  const [quality] = useState(siteGlobeQuality);
+  if (active && !globeWanted) setGlobeWanted(true);
+  // A low-power device keeps everything still (no drifting strip, no ripples or route flow), so it has nothing to pause.
+  const canMove = !reducedMotion && !quality.lowPower;
+  const moving = motionOn && canMove;
 
   // A project from the strip stays selected after its page closes, so the strip comes back at the same card.
   // A project opened from elsewhere (the grid, the globe) leaves the strip where it was.
@@ -126,18 +142,23 @@ export function Explorer({ projects, offices, openSlug, active, onOpenProject, o
     <main className="explorer" id={active ? 'content' : undefined} hidden={!active} data-view={projectOpen ? 'project' : 'overview'}>
       <h1 className="visually-hidden">ID-Indetails architecture projects</h1>
       <div className="explorer__stage">
-        <GlobeStage
-          groups={groups}
-          offices={offices}
-          activeGroupId={group.id}
-          activeProject={project}
-          closeUp={projectOpen}
-          interactive={!projectOpen}
-          animate={motionOn && !reducedMotion}
-          reducedMotion={reducedMotion}
-          frameRef={frameRef}
-          onSelectGroup={selectGroup}
-        />
+        {globeWanted && (
+          <Suspense fallback={null}>
+            <GlobeStage
+              groups={groups}
+              offices={offices}
+              activeGroupId={group.id}
+              activeProject={project}
+              closeUp={projectOpen}
+              interactive={!projectOpen}
+              animate={moving}
+              reducedMotion={reducedMotion}
+              quality={quality}
+              frameRef={frameRef}
+              onSelectGroup={selectGroup}
+            />
+          </Suspense>
+        )}
       </div>
 
       <div className="explorer__hero" ref={heroRef}>
@@ -148,7 +169,7 @@ export function Explorer({ projects, offices, openSlug, active, onOpenProject, o
             projects={conveyor}
             activeIndex={stripIndex}
             axis={narrow ? 'x' : 'y'}
-            drifting={motionOn && !reducedMotion}
+            drifting={moving}
             running={active && !projectOpen && heroOnScreen}
             reducedMotion={reducedMotion}
             onActiveChange={(next) => setStripSlug(conveyor[next].slug)}
@@ -165,7 +186,7 @@ export function Explorer({ projects, offices, openSlug, active, onOpenProject, o
             <button type="button" className="icon-button" aria-label="Next project" onClick={() => step(1)}>
               <ChevronRightIcon />
             </button>
-            {!reducedMotion && <MotionToggle playing={motionOn} onToggle={() => setMotionOn(!motionOn)} />}
+            {canMove && <MotionToggle playing={motionOn} onToggle={() => setMotionOn(!motionOn)} />}
           </div>
         </section>
 
