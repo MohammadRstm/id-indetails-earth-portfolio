@@ -197,6 +197,7 @@ img[data-loaded='false'] {
   font-weight: 560;
   font-stretch: 125%;
   letter-spacing: 0.015em;
+  white-space: nowrap;
 }
 
 .site-nav {
@@ -503,6 +504,7 @@ img[data-loaded='false'] {
   letter-spacing: 0.005em;
   text-transform: uppercase;
   text-wrap: balance;
+  hyphens: auto;
   overflow-wrap: anywhere;
 }
 
@@ -670,6 +672,8 @@ img[data-loaded='false'] {
   line-height: 0.86;
   text-transform: uppercase;
   text-wrap: balance;
+  /* A word too long for a phone breaks at a syllable, with a hyphen, before it breaks anywhere. */
+  hyphens: auto;
   overflow-wrap: anywhere;
 }
 
@@ -1014,11 +1018,12 @@ html:has(.viewer[open]) {
   margin-bottom: 10px;
 }
 
+/* Reading size on a phone; the line breaks typed in the dashboard keep the text's paragraphs. */
 .project-page__lead {
-  font-size: clamp(22px, 2.3vw, 34px);
-  font-weight: 300;
-  line-height: 1.3;
+  font-size: 17px;
+  line-height: 1.6;
   text-wrap: pretty;
+  white-space: pre-line;
 }
 
 /* Right under the photograph and the globe, the description is as small as the facts, so both show on the first screen. */
@@ -1038,8 +1043,6 @@ html:has(.viewer[open]) {
 
   .project-page__lead {
     font-size: 15px;
-    font-weight: 400;
-    line-height: 1.6;
   }
 }
 
@@ -1331,10 +1334,14 @@ select.filters__input {
     appearance: base-select;
   }
 
+  /*
+   * A block, clipped, so a long choice ("United Arab Emirates") stays inside its field instead of running
+   * into the next one. The chevron sits on the page's colour and fades the end of a long choice under it.
+   */
   select.filters__input {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    position: relative;
+    display: block;
+    overflow: hidden;
     padding-right: 2px;
     background: transparent;
   }
@@ -1345,10 +1352,13 @@ select.filters__input {
 
   select.filters__input::picker-icon {
     content: '';
-    width: 12px;
-    height: 12px;
-    margin-left: auto;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238b8b91' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat center / contain;
+    position: absolute;
+    top: calc(50% - 8px);
+    right: 0;
+    width: 16px;
+    height: 16px;
+    background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238b8b91' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat center / 12px 12px;
+    box-shadow: -14px 0 10px -2px var(--bg);
     transition: rotate 0.2s var(--ease-out);
   }
 
@@ -1496,6 +1506,7 @@ select.filters__input {
   font-stretch: 68%;
   line-height: 1;
   text-transform: uppercase;
+  hyphens: auto;
   overflow-wrap: anywhere;
 }
 
@@ -1996,6 +2007,8 @@ select.filters__input {
 
 .privacy {
   display: grid;
+  /* minmax(0, …): the cookie table scrolls inside its own box rather than widening the page on a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(48px, 6vw, 80px);
   max-width: 78ch;
   margin-top: clamp(56px, 8vw, 110px);
@@ -2249,6 +2262,30 @@ select.filters__input {
 
   .site-nav {
     gap: 18px;
+  }
+}
+
+/* The narrowest phones: the logo's name and both links stay on one line, and a project's title fits a 15-letter word. */
+@media (max-width: 359px) {
+  .heading__title {
+    font-size: 12.5vw;
+  }
+
+  .wordmark {
+    gap: 10px;
+  }
+
+  .wordmark__name {
+    font-size: 13.5px;
+  }
+
+  .site-nav {
+    gap: 14px;
+  }
+
+  .site-nav__link {
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
   }
 }
 
