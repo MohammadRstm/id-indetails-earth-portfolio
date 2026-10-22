@@ -2087,9 +2087,26 @@ select.filters__input {
     --stage-h: min(60svh, calc(100vw + 40px));
   }
 
+  /*
+   * Opening a project grows the stage to the full screen. The globe's canvas is a full screen tall from the
+   * start, clipped by the stage, so it never has to resize while the globe grows and moves down: a canvas
+   * still at the overview's height cut the globe off under its faded lower edge until the growth ended.
+   * The fade at the bottom moves to the stage, so it follows the stage's height.
+   */
   .explorer__stage {
     height: calc(var(--header-h) + var(--stage-h));
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
     transition: height 0.6s var(--ease-in-out);
+  }
+
+  .explorer__stage .globe-stage {
+    bottom: auto;
+    height: 100svh;
+  }
+
+  .explorer__stage .globe-stage__canvas {
+    mask-image: none;
   }
 
   .explorer__hero {
@@ -2149,10 +2166,18 @@ select.filters__input {
   }
 
   /* No room beside the globe: the photograph opens the page below it instead. */
-  .explorer[data-view='project'] .showcase,
-  .explorer[data-view='project'] .explorer__strip,
   .dock {
     display: none;
+  }
+
+  /* The strip and its caption fade out together as the globe grows over them, then leave the page. */
+  .explorer[data-view='project'] .showcase,
+  .explorer[data-view='project'] .explorer__strip {
+    visibility: hidden;
+    transition:
+      opacity 0.35s ease,
+      transform 0.6s var(--ease-out),
+      visibility 0s linear 0.35s;
   }
 
   .heading {
@@ -2207,6 +2232,14 @@ select.filters__input {
 
   .project-page__hero {
     display: block;
+  }
+
+  /* A faint line between the globe and the photograph under it. */
+  .project-page::before {
+    content: '';
+    height: 1px;
+    margin-bottom: 24px;
+    background: var(--hairline);
   }
 
   .project-page__intro,
