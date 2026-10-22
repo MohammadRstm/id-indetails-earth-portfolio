@@ -26,6 +26,7 @@ function project(
     slug,
     title,
     type,
+    typeLabel: type[0].toUpperCase() + type.slice(1),
     status,
     location: { ...place, approximate: false },
     year,

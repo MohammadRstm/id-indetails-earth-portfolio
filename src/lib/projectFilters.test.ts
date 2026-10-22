@@ -69,7 +69,9 @@ describe('sortProjects', () => {
 describe('filterOptions', () => {
   it('offers only the values the projects have, years newest first', () => {
     const options = filterOptions(testProjects);
-    expect(new Set(options.types)).toEqual(new Set(testProjects.map((project) => project.type)));
+    expect(new Set(options.types.map((type) => type.key))).toEqual(new Set(testProjects.map((project) => project.type)));
+    expect(options.types).toContainEqual({ key: 'hotel', label: 'Hotel' });
+    expect(options.types.map((type) => type.label)).toEqual([...options.types.map((type) => type.label)].sort((a, b) => a.localeCompare(b)));
     expect(options.years[0]).toBe(Math.max(...testProjects.map((project) => project.year)));
     expect(options.countries).toContain('Lebanon');
     expect(new Set(options.countries).size).toBe(options.countries.length);
@@ -87,7 +89,11 @@ describe('filters in the address', () => {
     expect(hasFilters(noFilters)).toBe(false);
   });
 
+  it('takes any type the dashboard could have made', () => {
+    expect(filtersFromQuery('type=beach-house').type).toBe('beach-house');
+  });
+
   it('ignores unknown and malformed values', () => {
-    expect(filtersFromQuery('type=castle&status=lost&year=soon&sort=random&q=')).toEqual(noFilters);
+    expect(filtersFromQuery('type=Beach%20House&status=lost&year=soon&sort=random&q=')).toEqual(noFilters);
   });
 });

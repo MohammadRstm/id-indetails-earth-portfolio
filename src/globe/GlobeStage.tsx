@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import type { Office } from '../data/offices';
-import { projectTypeLabel, type Project } from '../data/project';
+import type { Project } from '../data/project';
 import type { LocationGroup } from '../lib/geo';
 import { orientationFor, tagSide } from '../lib/geo';
 import { isWebGL2Available } from '../lib/webgl';
@@ -275,7 +275,7 @@ function TypeTag({ group, offices, projector }: { group: LocationGroup; offices:
     [projector, id, lat, lng],
   );
 
-  const label = [...new Set(group.projects.map((project) => project.type))].map((type) => projectTypeLabel[type]).join(' · ');
+  const label = [...new Set(group.projects.map((project) => project.typeLabel))].join(' · ');
   // The pointer runs from the tag's end (0, 0) down to the point (run, rise), stopping just short of it.
   const run = TAG_RUN;
   const rise = TAG_RISE;

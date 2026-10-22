@@ -41,6 +41,14 @@ describe('parseProject', () => {
     expect(project.conceptImages.map((picture) => picture.alt)).toEqual(['Sketch 1', 'Sketch 2', 'Sketch 3', 'Sketch 4', 'Sketch 5']);
   });
 
+  it('reads any type, with the label it is shown by', () => {
+    const project = parseProject({ ...apiProject, type: 'beach-house', typeLabel: 'Beach house' });
+    expect(project.type).toBe('beach-house');
+    expect(project.typeLabel).toBe('Beach house');
+    // an API that predates the label: made from the key
+    expect(parseProject({ ...apiProject, type: 'mixed-use', typeLabel: undefined }).typeLabel).toBe('Mixed use');
+  });
+
   it('accepts an empty client and a project outside the strip', () => {
     const project = parseProject({ ...apiProject, client: '', showInConveyor: false, conveyorOrder: null });
     expect(project.client).toBe('');
@@ -58,7 +66,7 @@ describe('parseProject', () => {
     const broken = [
       { ...apiProject, slug: 'Not A Slug' },
       { ...apiProject, slug: 'a'.repeat(101) },
-      { ...apiProject, type: 'castle' },
+      { ...apiProject, type: '' },
       { ...apiProject, status: 'paused' },
       { ...apiProject, location: { ...apiProject.location, lat: 120 } },
       { ...apiProject, location: { ...apiProject.location, lng: 'east' } },

@@ -27,6 +27,7 @@ function project(slug: string, lat: number, lng: number): Project {
     slug,
     title: slug,
     type: 'villa',
+    typeLabel: 'Villa',
     status: 'completed',
     location: { city: slug, country: 'Testland', countryCode: 'TL', lat, lng, approximate: false },
     year: 2024,

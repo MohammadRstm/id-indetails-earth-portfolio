@@ -1,5 +1,5 @@
 import type { Office } from '../data/offices';
-import { CONCEPT_LIMIT, projectStatusLabel, projectTypeLabel, type Project, type ProjectImage, type ProjectStatus, type ProjectType } from '../data/project';
+import { CONCEPT_LIMIT, projectStatusLabel, type Project, type ProjectImage, type ProjectStatus } from '../data/project';
 import type { ContactInfo, Service, SiteSettings, SocialLink } from '../data/site';
 import { resolveAssetUrl } from './config';
 
@@ -57,6 +57,12 @@ function oneOf<T extends string>(source: Json, key: string, allowed: Record<T, s
   return value as T;
 }
 
+/** A type's label from its key, for an API that predates `typeLabel`: "beach-house" is "Beach house". */
+function typeLabelOf(key: string): string {
+  const words = key.replace(/-/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function image(value: unknown, what: string): ProjectImage {
   const source = object(value, what);
   return {
@@ -85,7 +91,9 @@ export function parseProject(value: unknown): Project {
     id: number(source, 'id', what),
     slug,
     title: text(source, 'title', what),
-    type: oneOf<ProjectType>(source, 'type', projectTypeLabel, what),
+    type: text(source, 'type', what),
+    // optional: missing from an API that predates it
+    typeLabel: source.typeLabel == null ? typeLabelOf(text(source, 'type', what)) : text(source, 'typeLabel', what),
     status: oneOf<ProjectStatus>(source, 'status', projectStatusLabel, what),
     client: text(source, 'client', what, { allowEmpty: true }),
     location: {
