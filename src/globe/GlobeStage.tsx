@@ -86,11 +86,13 @@ export function GlobeStage({
 
   useEffect(() => controller.requestFrame(), [controller, activeGroupId]);
 
+  // Also on opening a project: the globe may have been dragged off the selected place, and the close-up must
+  // turn back to it before moving in rather than zoom in on wherever the globe was left.
   useEffect(() => {
     if (!ready) return;
     const { lat, lng } = activeProject.location;
     controller.focus(lat, lng, nowSeconds());
-  }, [ready, activeProject, controller]);
+  }, [ready, activeProject, controller, closeUp]);
 
   // A passive effect: the frame is a later sibling, so its ref is not attached yet during layout effects.
   useEffect(() => {
