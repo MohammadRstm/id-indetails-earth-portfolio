@@ -39,12 +39,14 @@ Instead the site uses React Three Fiber with custom `ShaderMaterial`s and `frame
 ```text
 src/
   analytics/   Google Analytics: the cookie question, page views and events
+  api/         Client for the public website API: endpoints, reply checks, errors
   data/        Typed project model and the data source
   globe/       Everything inside and around the 3D canvas
   components/  Page UI
   hooks/       Small React hooks
   lib/         Pure helpers (geo maths, country outlines, seeded random, WebGL check)
   styles/      Global CSS
+  test/        Made-up projects and offices for the tests
 ```
 
 **`src/data`**
@@ -145,7 +147,7 @@ The contact email and the favicon are `null` until they are set in the dashboard
 
 `VITE_API_BASE_URL` (see `.env.example`, read at build time) sets where the API is; by default it is `/api/public/website` on the site's own origin. In production the container's nginx forwards that path to the API.
 
-In development, `npm run dev` (and `npm run preview`) forward `/api/public/website` to the live site, `https://id-indetails.com`, so you work with the real projects (`vite.config.ts`). `DEV_API_TARGET` in `.env` points it elsewhere, such as a local API at `http://localhost:5164`. With the default, a message sent from the local contact form reaches the company's real inbox.
+In development, `npm run dev` (and `npm run preview`) forward `/api/public/website` to the live site, `https://id-indetails.com`, so you work with the real projects (`vite.config.ts`). `DEV_API_TARGET` in `.env` points it elsewhere, such as a local API at `https://localhost:7187` (the API's "https" launch profile, whose development certificate isn't checked) or `http://localhost:5164` (its "http" profile). With the default, a message sent from the local contact form reaches the company's real inbox.
 
 ## Hosting
 
@@ -174,7 +176,7 @@ docker run --rm -p 8080:8080 --read-only --tmpfs /tmp id-indetails-website
 **CI** (`.github/workflows/ci.yml`) runs on pull requests to `master` and on `master` after a merge, except for Markdown-only changes and pushes with `[skip ci]`:
 
 1. The Dockerfile's `check` stage: `npm run typecheck`, `npm run lint` and `npm test`.
-2. The runtime image is built and started read-only with no capabilities, and checked: healthy, not root, every page address answers with the app, photos are served, a missing bundle is a 404, the private API is not reachable, the security headers are present and caching is right.
+2. The runtime image is built and started read-only with no capabilities, and checked: healthy, not root, every page address answers with the app, a static file is served as itself, a missing bundle is a 404, the private API is not reachable, the security headers are present and caching is right.
 3. A Trivy scan fails on fixable critical or high vulnerabilities.
 
 The actions are pinned to commits, as in the backend.
@@ -221,7 +223,7 @@ None of this stops a determined visitor. Whatever a browser shows has already re
 - The Google maps load when the Contact page's maps come into view, whatever the visitor answered to the cookie question, and Google may set its cookies; the privacy notice says so. Loading them only after consent would need a click-to-load placeholder.
 - The privacy notice's company details are placeholders (`NOTICE` in `components/PrivacyPage.tsx`).
 - The sun is fixed relative to the camera, so the lit face is a stylised look, not the real time of day.
-- The production bundle is a single JavaScript chunk, mostly three.js and React Three Fiber, and Vite warns about its size. Loading the globe lazily would split it.
+- The globe's code (three.js and React Three Fiber, about 750 kB, 200 kB gzipped) loads as its own chunk after the site's code (`globe/preload.ts`), but it is still one large chunk and Vite warns about its size.
 - The 3D view needs WebGL 2. Without it, only the strip, captions and project pages are available.
 - If the graphics driver drops the WebGL context, the page shows a notice and needs a reload.
 - While the ripples play, the globe renders every frame; it stops when motion is paused or the globe is scrolled out of view.
