@@ -503,6 +503,46 @@ describe('zoom', () => {
     expect(controller.zoom).toBe(0);
   });
 
+  /** Settles on (0, 0), then drags the globe about a radian off it and lets go. */
+  function draggedOffPlace(reducedMotion = false) {
+    const controller = createController({ reducedMotion });
+    controller.focus(0, 0, 0, { instant: true });
+    controller.beginDrag(1);
+    controller.dragBy(1, 0, 1.1);
+    controller.endDrag(1.3);
+    return controller;
+  }
+
+  it('turns back to a place dragged away from before moving in on it', () => {
+    const goal = orientationFor(0, 0);
+    const controller = draggedOffPlace();
+    // What the stage does on opening the selected project: the close-up, and a fresh focus on its place.
+    controller.setCloseUp(true);
+    controller.focus(0, 0, 1.3);
+
+    let now = 1.3;
+    let zoomedInWhileFarAway = false;
+    while (controller.isTransitioning && now < 10) {
+      now += FRAME;
+      controller.update(FRAME, now);
+      if (Math.abs(wrapAngle(controller.yaw - goal.yaw)) > 0.5 && controller.zoom > 0.5) zoomedInWhileFarAway = true;
+    }
+    expect(zoomedInWhileFarAway).toBe(false);
+
+    runUntilIdle(controller, now);
+    expect(wrapAngle(controller.yaw - goal.yaw)).toBeCloseTo(0, 4);
+    expect(controller.zoom).toBe(1);
+  });
+
+  it('jumps back to a place dragged away from, and in, with reduced motion', () => {
+    const goal = orientationFor(0, 0);
+    const controller = draggedOffPlace(true);
+    controller.setCloseUp(true);
+    controller.focus(0, 0, 1.3);
+    expect(wrapAngle(controller.yaw - goal.yaw)).toBeCloseTo(0, 6);
+    expect(controller.zoom).toBe(1);
+  });
+
   it('switches the close-up straight in and out with reduced motion', () => {
     const controller = createController({ reducedMotion: true });
     controller.setCloseUp(true);
